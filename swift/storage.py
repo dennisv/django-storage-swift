@@ -84,5 +84,10 @@ class SwiftStorage(Storage):
     def get_available_name(self, name):
         return name
 
+    def size(self, name):
+        headers, content = self.connection.get_object(self.container_name,
+                                                      name)
+        return len(content)
+
     def url(self, name):
         return urlparse.urljoin(self.base_url, name).replace('\\', '/')
