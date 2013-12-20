@@ -106,4 +106,7 @@ class SwiftStorage(Storage):
         return len(content)
 
     def url(self, name):
+        # establish a connection to get the auth details required to build the
+        # base url
+        if self._connection is None: self.connection
         return urlparse.urljoin(self.base_url, name).replace('\\', '/')
