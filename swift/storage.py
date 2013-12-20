@@ -2,6 +2,9 @@ from StringIO import StringIO
 import re
 import os
 import urlparse
+import hmac
+from hashlib import sha1
+from time import time
 
 from django.core.files import File
 from django.core.files.storage import Storage
@@ -27,6 +30,9 @@ class SwiftStorage(Storage):
     container_name = setting('SWIFT_CONTAINER_NAME')
     auto_create_container = setting('SWIFT_AUTO_CREATE_CONTAINER', False)
     override_base_url = setting('SWIFT_BASE_URL')
+    use_temp_urls = setting('SWIFT_USE_TEMP_URLS', False)
+    temp_url_key = setting('SWIFT_TEMP_URL_KEY')
+    temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30*60)
 
     def __init__(self):
         self._connection = None
@@ -60,7 +66,7 @@ class SwiftStorage(Storage):
             split_override = urlparse.urlsplit(self.override_base_url)
             split_result = [''] * 5
             split_result[0:2] = split_override[0:2]
-            split_result[2] = split_override[2] + split_derived[2]
+            split_result[2] = (split_override[2] + split_derived[2]).replace('//','/')
             self.base_url = urlparse.urlunsplit(split_result)
 
         self.base_url = urlparse.urljoin(self.base_url, self.container_name)
@@ -109,4 +115,17 @@ class SwiftStorage(Storage):
         # establish a connection to get the auth details required to build the
         # base url
         if self._connection is None: self.connection
-        return urlparse.urljoin(self.base_url, name).replace('\\', '/')
+
+        url = urlparse.urljoin(self.base_url, name)
+            
+        # Are we building a temporary url?
+        if self.use_temp_urls:
+            expires = int(time() + int(self.temp_url_duration))
+            method = 'GET'
+            path = urlparse.urlsplit(url).path
+            sig = hmac.new(self.temp_url_key,
+                           '%s\n%s\n%s' % (method, expires, path),
+                           sha1).hexdigest()
+            url = url + '?temp_url_sig=%s&temp_url_expires=%s' % (sig, expires)
+            
+        return url
