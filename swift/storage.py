@@ -26,7 +26,7 @@ class SwiftStorage(Storage):
     tenant_name = setting('SWIFT_TENANT_NAME')
     container_name = setting('SWIFT_CONTAINER_NAME')
     auto_create_container = setting('SWIFT_AUTO_CREATE_CONTAINER', False)
-    base_url = setting('SWIFT_BASE_URL')
+    override_base_url = setting('SWIFT_BASE_URL')
 
     def __init__(self):
         self._connection = None
@@ -49,6 +49,22 @@ class SwiftStorage(Storage):
             else:
                 raise ImproperlyConfigured("Container %s does not exist."
                                            % self.container_name)
+
+        # Derive a base URL based on the authentication information from the
+        # server, optionally overriding the protocol, host/port and potentially
+        # adding a path fragment before the auth information. 
+        self.base_url = self._connection.get_auth()[0] + '/'
+        if self.override_base_url is not None:
+            # override the protocol and host, append any path fragments
+            split_derived = urlparse.urlsplit(self.base_url)
+            split_override = urlparse.urlsplit(self.override_base_url)
+            split_result = [''] * 5
+            split_result[0:2] = split_override[0:2]
+            split_result[2] = split_override[2] + split_derived[2]
+            self.base_url = urlparse.urlunsplit(split_result)
+
+        self.base_url = urlparse.urljoin(self.base_url, self.container_name)
+        self.base_url = self.base_url + '/'
 
         return self._connection
 
@@ -89,4 +105,7 @@ class SwiftStorage(Storage):
         return int(headers['content-length'])
 
     def url(self, name):
+        # establish a connection to get the auth details required to build the
+        # base url
+        if self._connection is None: self.connection
         return urlparse.urljoin(self.base_url, name).replace('\\', '/')
