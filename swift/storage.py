@@ -81,9 +81,6 @@ class SwiftStorage(Storage):
         s = name.strip().replace(' ', '_')
         return re.sub(r'(?u)[^-_\w./]', '', s)
 
-    def get_available_name(self, name):
-        return name
-
     def size(self, name):
         headers = self.connection.head_object(self.container_name, name)
         return int(headers['content-length'])
