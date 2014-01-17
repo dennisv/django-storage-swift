@@ -1,6 +1,7 @@
 from StringIO import StringIO
 import re
 import os
+import posixpath
 import urlparse
 import hmac
 from hashlib import sha1
@@ -102,6 +103,23 @@ class SwiftStorage(Storage):
     def get_valid_name(self, name):
         s = name.strip().replace(' ', '_')
         return re.sub(r'(?u)[^-_\w./]', '', s)
+
+    def get_available_name(self, name):
+        """
+        Returns a filename that's free on the target storage system, and
+        available for new content to be written to.
+        """
+        dir_name, file_name = os.path.split(name)
+        file_root, file_ext = os.path.splitext(file_name)
+        # If the filename already exists, add an underscore and a number (before
+        # the file extension, if one exists) to the filename until the generated
+        # filename doesn't exist.
+        count = itertools.count(1)
+        while self.exists(name):
+            # file_ext includes the dot.
+            name = posixpath.join(dir_name, "%s_%s%s" % (file_root, next(count), file_ext))
+
+        return name
 
     def size(self, name):
         headers = self.connection.head_object(self.container_name, name)
