@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='django-storage-swift',
-      version='0.9',
+      version='1.0',
       description='OpenStack Swift storage backend for Django',
       url='http://github.com/wecreatepixels/django-storage-swift',
       author='Dennis Vermeulen',
