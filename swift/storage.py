@@ -118,13 +118,15 @@ class SwiftStorage(Storage):
         """
         dir_name, file_name = os.path.split(name)
         file_root, file_ext = os.path.splitext(file_name)
-        # If the filename already exists, add an underscore and a number (before
-        # the file extension, if one exists) to the filename until the generated
-        # filename doesn't exist.
+        # If the filename already exists, add an underscore and a number
+        # (before the file extension, if one exists) to the filename until the
+        # generated filename doesn't exist.
         count = itertools.count(1)
         while self.exists(name):
             # file_ext includes the dot.
-            name = posixpath.join(dir_name, "%s_%s%s" % (file_root, next(count), file_ext))
+            name = posixpath.join(dir_name, "%s_%s%s" % (file_root,
+                                                         next(count),
+                                                         file_ext))
 
         return name
 
@@ -135,10 +137,11 @@ class SwiftStorage(Storage):
     def url(self, name):
         # establish a connection to get the auth details required to build the
         # base url
-        if self._connection is None: self.connection
+        if self._connection is None:
+            self.connection
 
         url = urlparse.urljoin(self.base_url, name)
-            
+
         # Are we building a temporary url?
         if self.use_temp_urls:
             expires = int(time() + int(self.temp_url_duration))
@@ -148,5 +151,5 @@ class SwiftStorage(Storage):
                            '%s\n%s\n%s' % (method, expires, path),
                            sha1).hexdigest()
             url = url + '?temp_url_sig=%s&temp_url_expires=%s' % (sig, expires)
-            
+
         return url
