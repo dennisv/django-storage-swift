@@ -4,6 +4,7 @@ import os
 import posixpath
 import urlparse
 import hmac
+import itertools
 from hashlib import sha1
 from time import time
 
