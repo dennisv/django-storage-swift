@@ -31,6 +31,7 @@ django-storage-swift recognises the following options.
 | ```SWIFT_TENANT_NAME``` | None | The tenant name to use when authenticating. |
 | ```SWIFT_CONTAINER_NAME``` | None | The container in which to store the files. |
 | ```SWIFT_AUTO_CREATE_CONTAINER``` | False | Should the container be created if it does not exist? |
+| ```SWIFT_AUTO_BASE_URL``` | True | Query the authentication server for the base URL. |
 | ```SWIFT_BASE_URL``` | None | The base URL from which the files can be retrieved, e.g. ```http://127.0.0.1:8080/```.  |
 | ```SWIFT_USE_TEMP_URLS``` | False | Generate temporary URLs for file access (allows files to be accessed without a permissive ACL). |
 | ```SWIFT_TEMP_URL_KEY``` | None | Temporary URL key --- see [the OpenStack documentation][openstack-tempurl]. |
