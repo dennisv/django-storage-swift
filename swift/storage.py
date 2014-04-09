@@ -134,7 +134,7 @@ class SwiftStorage(Storage):
         headers = self.connection.head_object(self.container_name, name)
         return int(headers['content-length'])
 
-    def url(self, name):
+    def path(self, name):
         # establish a connection to get the auth details required to build the
         # base url
         if self._connection is None:
