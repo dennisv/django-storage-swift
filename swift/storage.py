@@ -48,18 +48,23 @@ class SwiftStorage(Storage):
             self.api_username,
             self.api_key,
             auth_version=self.auth_version,
-            os_options = {"tenant_name" : self.tenant_name},
+            os_options={"tenant_name": self.tenant_name},
         )
         self.http_conn = swiftclient.http_connection(self.storage_url)
 
         # Check container
         try:
-            swiftclient.head_container(self.storage_url, self.token, self.container_name, http_conn=self.http_conn)
+            swiftclient.head_container(self.storage_url, self.token,
+                                       self.container_name,
+                                       http_conn=self.http_conn)
         except swiftclient.ClientException:
             if self.auto_create_container:
-                swiftclient.put_container(self.storage_url, self.token, self.container_name, http_conn=self.http_conn)
+                swiftclient.put_container(self.storage_url, self.token,
+                                          self.container_name,
+                                          http_conn=self.http_conn)
             else:
-                raise ImproperlyConfigured("Container %s does not exist." % self.container_name)
+                raise ImproperlyConfigured(
+                    "Container %s does not exist." % self.container_name)
 
         if self.auto_base_url:
             # Derive a base URL based on the authentication information from
@@ -78,19 +83,23 @@ class SwiftStorage(Storage):
 
             self.base_url = urlparse.urljoin(self.base_url,
                                              self.container_name)
-            self.base_url = self.base_url + '/'
+            self.base_url += '/'
         else:
             self.base_url = self.override_base_url
 
     def _open(self, name, mode='rb'):
-        headers, content = swiftclient.get_object(self.storage_url, self.token, self.container_name, name, http_conn=self.http_conn)
+        headers, content = swiftclient.get_object(self.storage_url, self.token,
+                                                  self.container_name, name,
+                                                  http_conn=self.http_conn)
         buf = StringIO(content)
         buf.name = os.path.basename(name)
         buf.mode = mode
         return File(buf)
 
     def _save(self, name, content):
-        swiftclient.put_object(self.storage_url, self.token, self.container_name, name, content, http_conn=self.http_conn)
+        swiftclient.put_object(self.storage_url, self.token,
+                               self.container_name, name, content,
+                               http_conn=self.http_conn)
         return name
 
     def get_headers(self, name):
@@ -103,7 +112,9 @@ class SwiftStorage(Storage):
         """
         if name != self.last_headers_name:
             # miss -> update
-            self.last_headers_value = swiftclient.head_object(self.storage_url, self.token, self.container_name, name, http_conn=self.http_conn)
+            self.last_headers_value = swiftclient.head_object(
+                self.storage_url, self.token, self.container_name, name,
+                http_conn=self.http_conn)
             self.last_headers_name = name
         return self.last_headers_value
 
@@ -116,7 +127,9 @@ class SwiftStorage(Storage):
 
     def delete(self, name):
         try:
-            swiftclient.delete_object(self.storage_url, self.token, self.container_name, name, http_conn=self.http_conn)
+            swiftclient.delete_object(self.storage_url, self.token,
+                                      self.container_name, name,
+                                      http_conn=self.http_conn)
         except swiftclient.ClientException:
             pass
 
@@ -147,7 +160,8 @@ class SwiftStorage(Storage):
         return int(self.get_headers(name)['content-length'])
 
     def modified_time(self, name):
-        return datetime.fromtimestamp(float(self.get_headers(name)['x-timestamp']))
+        return datetime.fromtimestamp(
+            float(self.get_headers(name)['x-timestamp']))
 
     def url(self, name):
         return self.path(name)
