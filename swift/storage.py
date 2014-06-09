@@ -7,6 +7,7 @@ import hmac
 import itertools
 from hashlib import sha1
 from time import time
+from datetime import datetime
 
 from django.core.files import File
 from django.core.files.storage import Storage
@@ -133,6 +134,10 @@ class SwiftStorage(Storage):
     def size(self, name):
         headers = self.connection.head_object(self.container_name, name)
         return int(headers['content-length'])
+
+    def modified_time(self, name):
+        headers = self.connection.head_object(self.container_name, name)
+        return datetime.fromtimestamp(float(headers['x-timestamp']))
 
     def path(self, name):
         # establish a connection to get the auth details required to build the
