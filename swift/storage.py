@@ -39,6 +39,8 @@ class SwiftStorage(Storage):
     temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30*60)
 
     def __init__(self):
+        self.last_headers_name = None
+        self.last_headers_value = None
         self._connection = None
 
     @property
@@ -95,9 +97,23 @@ class SwiftStorage(Storage):
         self.connection.put_object(self.container_name, name, content)
         return name
 
+    def get_headers(self, name):
+        """
+        Optimization : only fetch headers once when several calls are made
+        requiring information for the same name.
+        When the caller is collectstatic, this makes a huge difference.
+        According to my test, we get a *2 speed up. Which makes sense : two
+        api calls were made..
+        """
+        if name != self.last_headers_name:
+            # miss -> update
+            self.last_headers_value = swiftclient.head_object(self.url, self.token, self.container_name, name, http_conn=self.http_conn)
+            self.last_headers_name = name
+        return self.last_headers_value
+
     def exists(self, name):
         try:
-            self.connection.head_object(self.container_name, name)
+            self.get_headers(name)
         except swiftclient.ClientException:
             return False
         return True
@@ -132,12 +148,10 @@ class SwiftStorage(Storage):
         return name
 
     def size(self, name):
-        headers = self.connection.head_object(self.container_name, name)
-        return int(headers['content-length'])
+        return int(self.get_headers(name)['content-length'])
 
     def modified_time(self, name):
-        headers = self.connection.head_object(self.container_name, name)
-        return datetime.fromtimestamp(float(headers['x-timestamp']))
+        return datetime.fromtimestamp(float(self.get_headers(name)['x-timestamp']))
 
     def path(self, name):
         # establish a connection to get the auth details required to build the
