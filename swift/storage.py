@@ -7,6 +7,7 @@ import hmac
 import itertools
 from hashlib import sha1
 from time import time
+from datetime import datetime
 
 from django.core.files import File
 from django.core.files.storage import Storage
@@ -38,32 +39,33 @@ class SwiftStorage(Storage):
     temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30*60)
 
     def __init__(self):
-        self._connection = None
+        self.last_headers_name = None
+        self.last_headers_value = None
 
-    @property
-    def connection(self):
-        if self._connection is None:
-            self._connection = swiftclient.Connection(
-                authurl=self.api_auth_url,
-                auth_version=self.auth_version,
-                user=self.api_username,
-                key=self.api_key,
-                tenant_name=self.tenant_name)
+        # Get authentication token
+        self.url, self.token = swiftclient.get_auth(
+            self.api_auth_url,
+            self.api_username,
+            self.api_key,
+            auth_version=self.auth_version,
+            os_options = {"tenant_name" : self.tenant_name},
+        )
+        self.http_conn = swiftclient.http_connection(self.url)
 
+        # Check container
         try:
-            self._connection.head_container(self.container_name)
+            swiftclient.head_container(self.url, self.token, self.container_name, http_conn=self.http_conn)
         except swiftclient.ClientException:
             if self.auto_create_container:
-                self._connection.put_container(self.container_name)
+                swiftclient.put_container(self.url, self.token, self.container_name, http_conn=self.http_conn)
             else:
-                raise ImproperlyConfigured("Container %s does not exist."
-                                           % self.container_name)
+                raise ImproperlyConfigured("Container %s does not exist." % self.container_name)
 
         if self.auto_base_url:
             # Derive a base URL based on the authentication information from
             # the server, optionally overriding the protocol, host/port and
             # potentially adding a path fragment before the auth information.
-            self.base_url = self._connection.get_auth()[0] + '/'
+            self.base_url = self.url + '/'
             if self.override_base_url is not None:
                 # override the protocol and host, append any path fragments
                 split_derived = urlparse.urlsplit(self.base_url)
@@ -80,30 +82,41 @@ class SwiftStorage(Storage):
         else:
             self.base_url = self.override_base_url
 
-        return self._connection
-
     def _open(self, name, mode='rb'):
-        headers, content = self.connection.get_object(self.container_name,
-                                                      name)
+        headers, content = swiftclient.get_object(self.url, self.token, self.container_name, name, http_conn=self.http_conn)
         buf = StringIO(content)
         buf.name = os.path.basename(name)
         buf.mode = mode
         return File(buf)
 
     def _save(self, name, content):
-        self.connection.put_object(self.container_name, name, content)
+        swiftclient.put_object(self.url, self.token, self.container_name, name, content, http_conn=self.http_conn)
         return name
+
+    def get_headers(self, name):
+        """
+        Optimization : only fetch headers once when several calls are made
+        requiring information for the same name.
+        When the caller is collectstatic, this makes a huge difference.
+        According to my test, we get a *2 speed up. Which makes sense : two
+        api calls were made..
+        """
+        if name != self.last_headers_name:
+            # miss -> update
+            self.last_headers_value = swiftclient.head_object(self.url, self.token, self.container_name, name, http_conn=self.http_conn)
+            self.last_headers_name = name
+        return self.last_headers_value
 
     def exists(self, name):
         try:
-            self.connection.head_object(self.container_name, name)
+            self.get_headers(name)
         except swiftclient.ClientException:
             return False
         return True
 
     def delete(self, name):
         try:
-            self.connection.delete_object(self.container_name, name)
+            swiftclient.delete_object(self.url, self.token, self.container_name, name, http_conn=self.http_conn)
         except swiftclient.ClientException:
             pass
 
@@ -131,15 +144,15 @@ class SwiftStorage(Storage):
         return name
 
     def size(self, name):
-        headers = self.connection.head_object(self.container_name, name)
-        return int(headers['content-length'])
+        return int(self.get_headers(name)['content-length'])
+
+    def modified_time(self, name):
+        return datetime.fromtimestamp(float(self.get_headers(name)['x-timestamp']))
+
+    def url(self, name):
+        return self.path(name)
 
     def path(self, name):
-        # establish a connection to get the auth details required to build the
-        # base url
-        if self._connection is None:
-            self.connection
-
         url = urlparse.urljoin(self.base_url, name)
 
         # Are we building a temporary url?
