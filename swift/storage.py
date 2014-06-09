@@ -41,32 +41,31 @@ class SwiftStorage(Storage):
     def __init__(self):
         self.last_headers_name = None
         self.last_headers_value = None
-        self._connection = None
 
-    @property
-    def connection(self):
-        if self._connection is None:
-            self._connection = swiftclient.Connection(
-                authurl=self.api_auth_url,
-                auth_version=self.auth_version,
-                user=self.api_username,
-                key=self.api_key,
-                tenant_name=self.tenant_name)
+        # Get authentication token
+        self.url, self.token = swiftclient.get_auth(
+            self.api_auth_url,
+            self.api_username,
+            self.api_key,
+            auth_version=self.auth_version,
+            os_options = {"tenant_name" : self.tenant_name},
+        )
+        self.http_conn = swiftclient.http_connection(self.url)
 
+        # Check container
         try:
-            self._connection.head_container(self.container_name)
+            swiftclient.head_container(self.url, self.token, self.container_name, http_conn=self.http_conn)
         except swiftclient.ClientException:
             if self.auto_create_container:
-                self._connection.put_container(self.container_name)
+                swiftclient.put_container(self.url, self.token, self.container_name, http_conn=self.http_conn)
             else:
-                raise ImproperlyConfigured("Container %s does not exist."
-                                           % self.container_name)
+                raise ImproperlyConfigured("Container %s does not exist." % self.container_name)
 
         if self.auto_base_url:
             # Derive a base URL based on the authentication information from
             # the server, optionally overriding the protocol, host/port and
             # potentially adding a path fragment before the auth information.
-            self.base_url = self._connection.get_auth()[0] + '/'
+            self.base_url = self.url + '/'
             if self.override_base_url is not None:
                 # override the protocol and host, append any path fragments
                 split_derived = urlparse.urlsplit(self.base_url)
@@ -83,18 +82,15 @@ class SwiftStorage(Storage):
         else:
             self.base_url = self.override_base_url
 
-        return self._connection
-
     def _open(self, name, mode='rb'):
-        headers, content = self.connection.get_object(self.container_name,
-                                                      name)
+        headers, content = swiftclient.get_object(self.url, self.token, self.container_name, name, http_conn=self.http_conn)
         buf = StringIO(content)
         buf.name = os.path.basename(name)
         buf.mode = mode
         return File(buf)
 
     def _save(self, name, content):
-        self.connection.put_object(self.container_name, name, content)
+        swiftclient.put_object(self.url, self.token, self.container_name, name, content, http_conn=self.http_conn)
         return name
 
     def get_headers(self, name):
@@ -120,7 +116,7 @@ class SwiftStorage(Storage):
 
     def delete(self, name):
         try:
-            self.connection.delete_object(self.container_name, name)
+            swiftclient.delete_object(self.url, self.token, self.container_name, name, http_conn=self.http_conn)
         except swiftclient.ClientException:
             pass
 
@@ -153,12 +149,10 @@ class SwiftStorage(Storage):
     def modified_time(self, name):
         return datetime.fromtimestamp(float(self.get_headers(name)['x-timestamp']))
 
-    def path(self, name):
-        # establish a connection to get the auth details required to build the
-        # base url
-        if self._connection is None:
-            self.connection
+    def url(self, name):
+        return self.path(name)
 
+    def path(self, name):
         url = urlparse.urljoin(self.base_url, name)
 
         # Are we building a temporary url?
