@@ -43,21 +43,21 @@ class SwiftStorage(Storage):
         self.last_headers_value = None
 
         # Get authentication token
-        self.url, self.token = swiftclient.get_auth(
+        self.storage_url, self.token = swiftclient.get_auth(
             self.api_auth_url,
             self.api_username,
             self.api_key,
             auth_version=self.auth_version,
             os_options = {"tenant_name" : self.tenant_name},
         )
-        self.http_conn = swiftclient.http_connection(self.url)
+        self.http_conn = swiftclient.http_connection(self.storage_url)
 
         # Check container
         try:
-            swiftclient.head_container(self.url, self.token, self.container_name, http_conn=self.http_conn)
+            swiftclient.head_container(self.storage_url, self.token, self.container_name, http_conn=self.http_conn)
         except swiftclient.ClientException:
             if self.auto_create_container:
-                swiftclient.put_container(self.url, self.token, self.container_name, http_conn=self.http_conn)
+                swiftclient.put_container(self.storage_url, self.token, self.container_name, http_conn=self.http_conn)
             else:
                 raise ImproperlyConfigured("Container %s does not exist." % self.container_name)
 
@@ -65,7 +65,7 @@ class SwiftStorage(Storage):
             # Derive a base URL based on the authentication information from
             # the server, optionally overriding the protocol, host/port and
             # potentially adding a path fragment before the auth information.
-            self.base_url = self.url + '/'
+            self.base_url = self.storage_url + '/'
             if self.override_base_url is not None:
                 # override the protocol and host, append any path fragments
                 split_derived = urlparse.urlsplit(self.base_url)
@@ -83,14 +83,14 @@ class SwiftStorage(Storage):
             self.base_url = self.override_base_url
 
     def _open(self, name, mode='rb'):
-        headers, content = swiftclient.get_object(self.url, self.token, self.container_name, name, http_conn=self.http_conn)
+        headers, content = swiftclient.get_object(self.storage_url, self.token, self.container_name, name, http_conn=self.http_conn)
         buf = StringIO(content)
         buf.name = os.path.basename(name)
         buf.mode = mode
         return File(buf)
 
     def _save(self, name, content):
-        swiftclient.put_object(self.url, self.token, self.container_name, name, content, http_conn=self.http_conn)
+        swiftclient.put_object(self.storage_url, self.token, self.container_name, name, content, http_conn=self.http_conn)
         return name
 
     def get_headers(self, name):
@@ -103,7 +103,7 @@ class SwiftStorage(Storage):
         """
         if name != self.last_headers_name:
             # miss -> update
-            self.last_headers_value = swiftclient.head_object(self.url, self.token, self.container_name, name, http_conn=self.http_conn)
+            self.last_headers_value = swiftclient.head_object(self.storage_url, self.token, self.container_name, name, http_conn=self.http_conn)
             self.last_headers_name = name
         return self.last_headers_value
 
@@ -116,7 +116,7 @@ class SwiftStorage(Storage):
 
     def delete(self, name):
         try:
-            swiftclient.delete_object(self.url, self.token, self.container_name, name, http_conn=self.http_conn)
+            swiftclient.delete_object(self.storage_url, self.token, self.container_name, name, http_conn=self.http_conn)
         except swiftclient.ClientException:
             pass
 
