@@ -180,3 +180,7 @@ class SwiftStorage(Storage):
             url = url + '?temp_url_sig=%s&temp_url_expires=%s' % (sig, expires)
 
         return url
+
+class StaticSwiftStorage(SwiftStorage):
+    container_name = setting('SWIFT_STATIC_CONTAINER_NAME')
+

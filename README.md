@@ -10,13 +10,22 @@ django-storage-swift allows Django applications to use OpenStack Swift as a file
     + Supports the generation of temporary URLs to restrict access to files.
 
 
-## Installing
+## Usage
 
-To get started with django-storage-swift, install it through pip, then in your ```settings.py``` file, add:
+You can install django-storage-swift through pip.
+To store your media files on swift, add the following line to your
+settings.py or local\_settings.py:
 
 ```python
 DEFAULT_FILE_STORAGE='swift.storage.SwiftStorage'
 ```
+
+To store your static files on swift, add the following line:
+```python
+STATICFILES_STORAGE ='swift.storage.StaticSwiftStorage'
+```
+This will use another container.
+
 
 ## Configuring
 
@@ -30,6 +39,7 @@ django-storage-swift recognises the following options.
 | ```SWIFT_AUTH_VERSION``` | 1 | The version of the authentication protocol to use. |
 | ```SWIFT_TENANT_NAME``` | None | The tenant name to use when authenticating. |
 | ```SWIFT_CONTAINER_NAME``` | None | The container in which to store the files. |
+| ```SWIFT_STATIC_CONTAINER_NAME``` | None | Alternate container used by StaticSwiftStorage. |
 | ```SWIFT_AUTO_CREATE_CONTAINER``` | False | Should the container be created if it does not exist? |
 | ```SWIFT_AUTO_BASE_URL``` | True | Query the authentication server for the base URL. |
 | ```SWIFT_BASE_URL``` | None | The base URL from which the files can be retrieved, e.g. ```http://127.0.0.1:8080/```.  |
