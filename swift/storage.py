@@ -38,6 +38,9 @@ class SwiftStorage(Storage):
     use_temp_urls = setting('SWIFT_USE_TEMP_URLS', False)
     temp_url_key = setting('SWIFT_TEMP_URL_KEY')
     temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30*60)
+    auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60*60*23)
+    _token_creation_time = 0
+    _token = ''
 
     def __init__(self):
         self.last_headers_name = None
@@ -90,6 +93,24 @@ class SwiftStorage(Storage):
             self.base_url += '/'
         else:
             self.base_url = self.override_base_url
+
+    def get_token(self):
+        if time() - self._token_creation_time >= self.auth_token_duration:
+            new_token = swiftclient.get_auth(
+                self.api_auth_url,
+                self.api_username,
+                self.api_key,
+                auth_version=self.auth_version,
+                os_options={"tenant_name": self.tenant_name},
+            )[1]
+            self.token = new_token
+        return self._token
+
+    def set_token(self, new_token):
+        self._token_creation_time = time()
+        self._token = new_token
+
+    token = property(get_token, set_token)
 
     def _open(self, name, mode='rb'):
         headers, content = swiftclient.get_object(self.storage_url, self.token,
