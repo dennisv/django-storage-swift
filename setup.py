@@ -1,11 +1,11 @@
 from setuptools import setup
 
 setup(name='django-storage-swift',
-      version='1.1',
+      version='1.2',
       description='OpenStack Swift storage backend for Django',
-      url='http://github.com/wecreatepixels/django-storage-swift',
+      url='http://github.com/blacktorn/django-storage-swift',
       author='Dennis Vermeulen',
-      author_email='dennis@wecreatepixels.nl',
+      author_email='blacktorn@gmail.com',
       license='MIT',
       packages=['swift'],
       install_requires=[
