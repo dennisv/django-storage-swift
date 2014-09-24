@@ -32,7 +32,8 @@ class SwiftStorage(Storage):
     tenant_name = setting('SWIFT_TENANT_NAME')
     container_name = setting('SWIFT_CONTAINER_NAME')
     auto_create_container = setting('SWIFT_AUTO_CREATE_CONTAINER', False)
-    auto_create_container_public = setting('SWIFT_AUTO_CREATE_CONTAINER_PUBLIC', False)
+    auto_create_container_public = setting(
+        'SWIFT_AUTO_CREATE_CONTAINER_PUBLIC', False)
     auto_base_url = setting('SWIFT_AUTO_BASE_URL', True)
     override_base_url = setting('SWIFT_BASE_URL')
     use_temp_urls = setting('SWIFT_USE_TEMP_URLS', False)
@@ -68,7 +69,8 @@ class SwiftStorage(Storage):
                     headers['X-Container-Read'] = '.r:*'
                 swiftclient.put_container(self.storage_url, self.token,
                                           self.container_name,
-                                          http_conn=self.http_conn, headers=headers)
+                                          http_conn=self.http_conn,
+                                          headers=headers)
             else:
                 raise ImproperlyConfigured(
                     "Container %s does not exist." % self.container_name)
