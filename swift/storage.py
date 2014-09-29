@@ -42,6 +42,7 @@ class SwiftStorage(Storage):
     auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60*60*23)
     _token_creation_time = 0
     _token = ''
+    name_prefix = setting('SWIFT_NAME_PREFIX')
 
     def __init__(self):
         self.last_headers_name = None
@@ -115,6 +116,9 @@ class SwiftStorage(Storage):
     token = property(get_token, set_token)
 
     def _open(self, name, mode='rb'):
+	if self.name_prefix:
+	    name = self.name_prefix + name
+
         headers, content = swiftclient.get_object(self.storage_url, self.token,
                                                   self.container_name, name,
                                                   http_conn=self.http_conn)
@@ -124,6 +128,9 @@ class SwiftStorage(Storage):
         return File(buf)
 
     def _save(self, name, content):
+	if self.name_prefix:
+	    name = self.name_prefix + name
+
         swiftclient.put_object(self.storage_url, self.token,
                                self.container_name, name, content,
                                http_conn=self.http_conn)
@@ -137,6 +144,9 @@ class SwiftStorage(Storage):
         According to my test, we get a *2 speed up. Which makes sense : two
         api calls were made..
         """
+	if self.name_prefix:
+	    name = self.name_prefix + name
+
         if name != self.last_headers_name:
             # miss -> update
             self.last_headers_value = swiftclient.head_object(
@@ -210,4 +220,5 @@ class SwiftStorage(Storage):
 
 class StaticSwiftStorage(SwiftStorage):
     container_name = setting('SWIFT_STATIC_CONTAINER_NAME')
+    name_prefix = setting('SWIFT_STATIC_NAME_PREFIX')
 
