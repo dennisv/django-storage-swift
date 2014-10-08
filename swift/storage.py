@@ -116,8 +116,8 @@ class SwiftStorage(Storage):
     token = property(get_token, set_token)
 
     def _open(self, name, mode='rb'):
-	if self.name_prefix:
-	    name = self.name_prefix + name
+        if self.name_prefix:
+            name = self.name_prefix + name
 
         headers, content = swiftclient.get_object(self.storage_url, self.token,
                                                   self.container_name, name,
@@ -128,8 +128,8 @@ class SwiftStorage(Storage):
         return File(buf)
 
     def _save(self, name, content):
-	if self.name_prefix:
-	    name = self.name_prefix + name
+        if self.name_prefix:
+            name = self.name_prefix + name
 
         swiftclient.put_object(self.storage_url, self.token,
                                self.container_name, name, content,
@@ -144,8 +144,8 @@ class SwiftStorage(Storage):
         According to my test, we get a *2 speed up. Which makes sense : two
         api calls were made..
         """
-	if self.name_prefix:
-	    name = self.name_prefix + name
+        if self.name_prefix:
+            name = self.name_prefix + name
 
         if name != self.last_headers_name:
             # miss -> update
@@ -218,8 +218,8 @@ class SwiftStorage(Storage):
 
         return url
 
+
 class StaticSwiftStorage(SwiftStorage):
     container_name = setting('SWIFT_STATIC_CONTAINER_NAME')
     name_prefix = setting('SWIFT_STATIC_NAME_PREFIX')
     override_base_url = setting('SWIFT_STATIC_BASE_URL')
-
