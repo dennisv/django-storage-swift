@@ -220,6 +220,9 @@ class SwiftStorage(Storage):
 
         return url
 
+    def path(self, name):
+        raise NotImplementedError
+
 
 class StaticSwiftStorage(SwiftStorage):
     container_name = setting('SWIFT_STATIC_CONTAINER_NAME')
