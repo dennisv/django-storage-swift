@@ -201,9 +201,9 @@ class SwiftStorage(Storage):
             float(self.get_headers(name)['x-timestamp']))
 
     def url(self, name):
-        return self.path(name)
+        return self._path(name)
 
-    def path(self, name):
+    def _path(self, name):
         url = urlparse.urljoin(self.base_url, name)
 
         # Are we building a temporary url?
