@@ -46,6 +46,7 @@ django-storage-swift recognises the following options.
 | ```SWIFT_USE_TEMP_URLS``` | False | Generate temporary URLs for file access (allows files to be accessed without a permissive ACL). |
 | ```SWIFT_TEMP_URL_KEY``` | None | Temporary URL key --- see [the OpenStack documentation][openstack-tempurl]. |
 | ```SWIFT_TEMP_URL_DURATION``` | ```30*60``` | How long a temporary URL remains valid, in seconds. |
+| ```SWIFT_EXTRA_OPTIONS``` | ```{}``` | Extra options, eg. { "endpoint_type": "adminURL"  }, which will return adminURL instead publicURL. | 
 
 ### SWIFT_BASE_URL
 django-swift-storage will automatically query the authentication server for the URL where your files can be accessed, which takes the form ```http://server:port/v1/AUTH_token/```.
