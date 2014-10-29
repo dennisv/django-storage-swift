@@ -40,6 +40,7 @@ class SwiftStorage(Storage):
     temp_url_key = setting('SWIFT_TEMP_URL_KEY')
     temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30*60)
     auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60*60*23)
+    os_extra_options = setting('SWIFT_EXTRA_OPTIONS', {})
     _token_creation_time = 0
     _token = ''
     name_prefix = setting('SWIFT_NAME_PREFIX')
@@ -54,7 +55,8 @@ class SwiftStorage(Storage):
             self.api_username,
             self.api_key,
             auth_version=self.auth_version,
-            os_options={"tenant_name": self.tenant_name},
+            os_options=dict({"tenant_name": self.tenant_name}.items() +
+                            self.os_extra_options.items()),
         )
         self.http_conn = swiftclient.http_connection(self.storage_url)
 
@@ -201,9 +203,9 @@ class SwiftStorage(Storage):
             float(self.get_headers(name)['x-timestamp']))
 
     def url(self, name):
-        return self.path(name)
+        return self._path(name)
 
-    def path(self, name):
+    def _path(self, name):
         url = urlparse.urljoin(self.base_url, name)
 
         # Are we building a temporary url?
@@ -217,6 +219,9 @@ class SwiftStorage(Storage):
             url = url + '?temp_url_sig=%s&temp_url_expires=%s' % (sig, expires)
 
         return url
+
+    def path(self, name):
+        raise NotImplementedError
 
 
 class StaticSwiftStorage(SwiftStorage):
