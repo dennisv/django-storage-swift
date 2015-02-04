@@ -30,6 +30,7 @@ class SwiftStorage(Storage):
     api_key = setting('SWIFT_KEY')
     auth_version = setting('SWIFT_AUTH_VERSION', 1)
     tenant_name = setting('SWIFT_TENANT_NAME')
+    tenant_id = setting('SWIFT_TENANT_ID')
     container_name = setting('SWIFT_CONTAINER_NAME')
     auto_create_container = setting('SWIFT_AUTO_CREATE_CONTAINER', False)
     auto_create_container_public = setting(
@@ -55,7 +56,7 @@ class SwiftStorage(Storage):
             self.api_username,
             self.api_key,
             auth_version=self.auth_version,
-            os_options=dict(list({"tenant_name": self.tenant_name}.items()) +
+            os_options=dict(list({"tenant_id": self.tenant_id, "tenant_name": self.tenant_name}.items()) +
                             list(self.os_extra_options.items())),
         )
         self.http_conn = swiftclient.http_connection(self.storage_url)

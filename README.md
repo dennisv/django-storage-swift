@@ -38,6 +38,7 @@ django-storage-swift recognises the following options.
 | ```SWIFT_KEY``` | None | The key (password) to use to authenticate. |
 | ```SWIFT_AUTH_VERSION``` | 1 | The version of the authentication protocol to use. |
 | ```SWIFT_TENANT_NAME``` | None | The tenant name to use when authenticating. |
+| ```SWIFT_TENANT_ID``` | None | The tenant id to use when authenticating. |
 | ```SWIFT_CONTAINER_NAME``` | None | The container in which to store the files. |
 | ```SWIFT_STATIC_CONTAINER_NAME``` | None | Alternate container used by StaticSwiftStorage. |
 | ```SWIFT_AUTO_CREATE_CONTAINER``` | False | Should the container be created if it does not exist? |
