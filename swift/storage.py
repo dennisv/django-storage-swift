@@ -1,8 +1,8 @@
-from StringIO import StringIO
+from io import StringIO
 import re
 import os
 import posixpath
-import urlparse
+import urllib.parse
 import hmac
 import itertools
 from hashlib import sha1
@@ -55,8 +55,8 @@ class SwiftStorage(Storage):
             self.api_username,
             self.api_key,
             auth_version=self.auth_version,
-            os_options=dict({"tenant_name": self.tenant_name}.items() +
-                            self.os_extra_options.items()),
+            os_options=dict(list({"tenant_name": self.tenant_name}.items()) +
+                            list(self.os_extra_options.items())),
         )
         self.http_conn = swiftclient.http_connection(self.storage_url)
 
@@ -85,15 +85,15 @@ class SwiftStorage(Storage):
             self.base_url = self.storage_url + '/'
             if self.override_base_url is not None:
                 # override the protocol and host, append any path fragments
-                split_derived = urlparse.urlsplit(self.base_url)
-                split_override = urlparse.urlsplit(self.override_base_url)
+                split_derived = urllib.parse.urlsplit(self.base_url)
+                split_override = urllib.parse.urlsplit(self.override_base_url)
                 split_result = [''] * 5
                 split_result[0:2] = split_override[0:2]
                 split_result[2] = (split_override[2] +
                                    split_derived[2]).replace('//', '/')
-                self.base_url = urlparse.urlunsplit(split_result)
+                self.base_url = urllib.parse.urlunsplit(split_result)
 
-            self.base_url = urlparse.urljoin(self.base_url,
+            self.base_url = urllib.parse.urljoin(self.base_url,
                                              self.container_name)
             self.base_url += '/'
         else:
@@ -206,13 +206,13 @@ class SwiftStorage(Storage):
         return self._path(name)
 
     def _path(self, name):
-        url = urlparse.urljoin(self.base_url, name)
+        url = urllib.parse.urljoin(self.base_url, name)
 
         # Are we building a temporary url?
         if self.use_temp_urls:
             expires = int(time() + int(self.temp_url_duration))
             method = 'GET'
-            path = urlparse.urlsplit(url).path
+            path = urllib.parse.urlsplit(url).path
             sig = hmac.new(self.temp_url_key,
                            '%s\n%s\n%s' % (method, expires, path),
                            sha1).hexdigest()
