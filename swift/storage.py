@@ -42,6 +42,7 @@ class SwiftStorage(Storage):
     temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30*60)
     auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60*60*23)
     os_extra_options = setting('SWIFT_EXTRA_OPTIONS', {})
+    auto_overwrite = setting('SWIFT_AUTO_OVERWRITE', False)
     _token_creation_time = 0
     _token = ''
     name_prefix = setting('SWIFT_NAME_PREFIX')
@@ -182,17 +183,9 @@ class SwiftStorage(Storage):
         Returns a filename that's free on the target storage system, and
         available for new content to be written to.
         """
-        dir_name, file_name = os.path.split(name)
-        file_root, file_ext = os.path.splitext(file_name)
-        # If the filename already exists, add an underscore and a number
-        # (before the file extension, if one exists) to the filename until the
-        # generated filename doesn't exist.
-        count = itertools.count(1)
-        while self.exists(name):
-            # file_ext includes the dot.
-            name = posixpath.join(dir_name, "%s_%s%s" % (file_root,
-                                                         next(count),
-                                                         file_ext))
+        
+        if not self.auto_overwrite:
+            name = super(SwiftStorage, self).get_available_name(name)
 
         return name
 
