@@ -223,8 +223,51 @@ class SwiftStorage(Storage):
     def path(self, name):
         raise NotImplementedError
 
+    def isdir(self, name):
+        return '.' not in name
+
+    def listdir(self, abs_path):
+        container = swiftclient.get_container(self.storage_url,
+                                              self.token,
+                                              self.container_name)
+        files = []
+        dirs = []
+        for obj in container[1]:
+            if not obj['name'].startswith(abs_path):
+                continue
+
+            path = obj['name'][len(abs_path):].split('/')
+            key = path[0] if path[0] else path[1]
+            
+            if not self.isdir(key):
+                files.append(key)
+            elif key not in dirs:
+                dirs.append(key)
+            
+        return dirs, files
+
+    def makedirs(self, dirs):
+        swiftclient.put_object(self.storage_url,
+                               token=self.token,
+                               container=self.container_name,
+                               name='%s/.' % dirs,
+                               contents='')
+
+    def rmtree(self, abs_path):
+        container = swiftclient.get_container(self.storage_url,
+                                              self.token,
+                                              self.container_name)
+
+        for obj in container[1]:
+            if obj['name'].startswith(abs_path):
+                swiftclient.delete_object(self.storage_url,
+                                          token=self.token,
+                                          container=self.container_name,
+                                          name=obj['name'])
 
 class StaticSwiftStorage(SwiftStorage):
     container_name = setting('SWIFT_STATIC_CONTAINER_NAME')
     name_prefix = setting('SWIFT_STATIC_NAME_PREFIX')
     override_base_url = setting('SWIFT_STATIC_BASE_URL')
+
+
