@@ -85,3 +85,46 @@ The result should be ```<<swiftclient.client.Connection object ...>>```
 [openstack-tempurl]: http://docs.openstack.org/trunk/config-reference/content//object-storage-tempurl.html
 [devstack]: http://devstack.org/
 [public-container-help]: http://support.rc.nectar.org.au/forum/viewtopic.php?f=6&t=272
+
+## Quickstart
+
+```
+# This was executed on a VM running a SAIO, for example with
+# https://github.com/swiftstack/vagrant-swift-all-in-one
+
+# Create two world-readable containers
+swift post -r ".r:*" django
+swift post -r ".r:*" django-static
+
+# A virtualenv to keep installation separated
+virtualenv sampleenv
+source sampleenv/bin/activate
+pip install django-storage-swift
+pip install django
+
+# Create a sample project
+django-admin startproject sampleproj
+export DJANGO_SETTINGS_MODULE=sampleproj.settings
+cd sampleproj/
+
+# A few required settings, using SAIO defaults
+cat <<EOF >> sampleproj/settings.py
+DEFAULT_FILE_STORAGE='swift.storage.SwiftStorage'
+STATICFILES_STORAGE ='swift.storage.StaticSwiftStorage'
+SWIFT_AUTH_URL='http://127.0.0.1:8080/auth/v1.0'
+SWIFT_USERNAME='test:tester'
+SWIFT_KEY='testing'
+SWIFT_CONTAINER_NAME='django'
+SWIFT_STATIC_CONTAINER_NAME='django-static'
+EOF
+
+# Create the initial DB data
+python manage.py migrate
+
+# This uploads static files to Swift
+python manage.py collectstatic --noinput
+
+# Now open http://127.0.0.1:8000/admin/ in your browser
+# Static files like CSS are served by Swift
+python manage.py runserver
+```
