@@ -238,12 +238,12 @@ class SwiftStorage(Storage):
 
             path = obj['name'][len(abs_path):].split('/')
             key = path[0] if path[0] else path[1]
-            
+
             if not self.isdir(key):
                 files.append(key)
             elif key not in dirs:
                 dirs.append(key)
-            
+
         return dirs, files
 
     def makedirs(self, dirs):
@@ -265,9 +265,8 @@ class SwiftStorage(Storage):
                                           container=self.container_name,
                                           name=obj['name'])
 
+
 class StaticSwiftStorage(SwiftStorage):
     container_name = setting('SWIFT_STATIC_CONTAINER_NAME')
     name_prefix = setting('SWIFT_STATIC_NAME_PREFIX')
     override_base_url = setting('SWIFT_STATIC_BASE_URL')
-
-
