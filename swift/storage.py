@@ -1,5 +1,6 @@
 from StringIO import StringIO
 import re
+import mimetypes
 import os
 import posixpath
 import urlparse
@@ -133,9 +134,14 @@ class SwiftStorage(Storage):
         if self.name_prefix:
             name = self.name_prefix + name
 
-        swiftclient.put_object(self.storage_url, self.token,
-                               self.container_name, name, content,
-                               http_conn=self.http_conn)
+        content_type = mimetypes.guess_type(name)[0]
+        swiftclient.put_object(self.storage_url,
+                               self.token,
+                               self.container_name,
+                               name,
+                               content,
+                               http_conn=self.http_conn,
+                               content_type=content_type)
         return name
 
     def get_headers(self, name):
@@ -270,3 +276,12 @@ class StaticSwiftStorage(SwiftStorage):
     container_name = setting('SWIFT_STATIC_CONTAINER_NAME')
     name_prefix = setting('SWIFT_STATIC_NAME_PREFIX')
     override_base_url = setting('SWIFT_STATIC_BASE_URL')
+
+    def get_available_name(self, name):
+        """
+        When running collectstatic we don't want to return an available name,
+        we want to return the same name because if the file exists we want to
+        overwrite it.
+        """
+        return name
+
