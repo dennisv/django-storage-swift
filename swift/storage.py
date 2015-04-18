@@ -1,9 +1,9 @@
-from StringIO import StringIO
+from io import StringIO
 import re
 import mimetypes
 import os
 import posixpath
-import urlparse
+import urllib.parse
 import hmac
 import itertools
 from hashlib import sha1
@@ -31,6 +31,7 @@ class SwiftStorage(Storage):
     api_key = setting('SWIFT_KEY')
     auth_version = setting('SWIFT_AUTH_VERSION', 1)
     tenant_name = setting('SWIFT_TENANT_NAME')
+    tenant_id = setting('SWIFT_TENANT_ID')
     container_name = setting('SWIFT_CONTAINER_NAME')
     auto_create_container = setting('SWIFT_AUTO_CREATE_CONTAINER', False)
     auto_create_container_public = setting(
@@ -42,6 +43,7 @@ class SwiftStorage(Storage):
     temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30*60)
     auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60*60*23)
     os_extra_options = setting('SWIFT_EXTRA_OPTIONS', {})
+    auto_overwrite = setting('SWIFT_AUTO_OVERWRITE', False)
     _token_creation_time = 0
     _token = ''
     name_prefix = setting('SWIFT_NAME_PREFIX')
@@ -56,8 +58,8 @@ class SwiftStorage(Storage):
             self.api_username,
             self.api_key,
             auth_version=self.auth_version,
-            os_options=dict({"tenant_name": self.tenant_name}.items() +
-                            self.os_extra_options.items()),
+            os_options=dict(list({"tenant_id": self.tenant_id, "tenant_name": self.tenant_name}.items()) +
+                            list(self.os_extra_options.items())),
         )
         self.http_conn = swiftclient.http_connection(self.storage_url)
 
@@ -86,15 +88,15 @@ class SwiftStorage(Storage):
             self.base_url = self.storage_url + '/'
             if self.override_base_url is not None:
                 # override the protocol and host, append any path fragments
-                split_derived = urlparse.urlsplit(self.base_url)
-                split_override = urlparse.urlsplit(self.override_base_url)
+                split_derived = urllib.parse.urlsplit(self.base_url)
+                split_override = urllib.parse.urlsplit(self.override_base_url)
                 split_result = [''] * 5
                 split_result[0:2] = split_override[0:2]
                 split_result[2] = (split_override[2] +
                                    split_derived[2]).replace('//', '/')
-                self.base_url = urlparse.urlunsplit(split_result)
+                self.base_url = urllib.parse.urlunsplit(split_result)
 
-            self.base_url = urlparse.urljoin(self.base_url,
+            self.base_url = urllib.parse.urljoin(self.base_url,
                                              self.container_name)
             self.base_url += '/'
         else:
@@ -187,17 +189,9 @@ class SwiftStorage(Storage):
         Returns a filename that's free on the target storage system, and
         available for new content to be written to.
         """
-        dir_name, file_name = os.path.split(name)
-        file_root, file_ext = os.path.splitext(file_name)
-        # If the filename already exists, add an underscore and a number
-        # (before the file extension, if one exists) to the filename until the
-        # generated filename doesn't exist.
-        count = itertools.count(1)
-        while self.exists(name):
-            # file_ext includes the dot.
-            name = posixpath.join(dir_name, "%s_%s%s" % (file_root,
-                                                         next(count),
-                                                         file_ext))
+        
+        if not self.auto_overwrite:
+            name = super(SwiftStorage, self).get_available_name(name)
 
         return name
 
@@ -212,13 +206,13 @@ class SwiftStorage(Storage):
         return self._path(name)
 
     def _path(self, name):
-        url = urlparse.urljoin(self.base_url, name)
+        url = urllib.parse.urljoin(self.base_url, name)
 
         # Are we building a temporary url?
         if self.use_temp_urls:
             expires = int(time() + int(self.temp_url_duration))
             method = 'GET'
-            path = urlparse.urlsplit(url).path
+            path = urllib.parse.urlsplit(url).path
             sig = hmac.new(self.temp_url_key,
                            '%s\n%s\n%s' % (method, expires, path),
                            sha1).hexdigest()
