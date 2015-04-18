@@ -11,5 +11,6 @@ setup(name='django-storage-swift',
       install_requires=[
           'python-swiftclient>=1.4.0',
           'python-keystoneclient>=0.2.3',
+          'six',
       ],
       zip_safe=False)

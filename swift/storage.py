@@ -1,11 +1,9 @@
-from io import StringIO
+from six.moves import StringIO
 import re
 import mimetypes
 import os
-import posixpath
-import urllib.parse
+from six.moves.urllib import parse as urlparse
 import hmac
-import itertools
 from hashlib import sha1
 from time import time
 from datetime import datetime
@@ -52,14 +50,19 @@ class SwiftStorage(Storage):
         self.last_headers_name = None
         self.last_headers_value = None
 
+        os_options = {
+            'tenant_id': self.tenant_id,
+            'tenant_name': self.tenant_name
+        }
+        os_options.update(self.os_extra_options)
+
         # Get authentication token
         self.storage_url, self.token = swiftclient.get_auth(
             self.api_auth_url,
             self.api_username,
             self.api_key,
             auth_version=self.auth_version,
-            os_options=dict(list({"tenant_id": self.tenant_id, "tenant_name": self.tenant_name}.items()) +
-                            list(self.os_extra_options.items())),
+            os_options=os_options,
         )
         self.http_conn = swiftclient.http_connection(self.storage_url)
 
@@ -88,16 +91,15 @@ class SwiftStorage(Storage):
             self.base_url = self.storage_url + '/'
             if self.override_base_url is not None:
                 # override the protocol and host, append any path fragments
-                split_derived = urllib.parse.urlsplit(self.base_url)
-                split_override = urllib.parse.urlsplit(self.override_base_url)
+                split_derived = urlparse.urlsplit(self.base_url)
+                split_override = urlparse.urlsplit(self.override_base_url)
                 split_result = [''] * 5
                 split_result[0:2] = split_override[0:2]
                 split_result[2] = (split_override[2] +
                                    split_derived[2]).replace('//', '/')
-                self.base_url = urllib.parse.urlunsplit(split_result)
+                self.base_url = urlparse.urlunsplit(split_result)
 
-            self.base_url = urllib.parse.urljoin(self.base_url,
-                                             self.container_name)
+            self.base_url = urlparse.urljoin(self.base_url, self.container_name)
             self.base_url += '/'
         else:
             self.base_url = self.override_base_url
@@ -189,7 +191,7 @@ class SwiftStorage(Storage):
         Returns a filename that's free on the target storage system, and
         available for new content to be written to.
         """
-        
+
         if not self.auto_overwrite:
             name = super(SwiftStorage, self).get_available_name(name)
 
@@ -206,13 +208,13 @@ class SwiftStorage(Storage):
         return self._path(name)
 
     def _path(self, name):
-        url = urllib.parse.urljoin(self.base_url, name)
+        url = urlparse.urljoin(self.base_url, name)
 
         # Are we building a temporary url?
         if self.use_temp_urls:
             expires = int(time() + int(self.temp_url_duration))
             method = 'GET'
-            path = urllib.parse.urlsplit(url).path
+            path = urlparse.urlsplit(url).path
             sig = hmac.new(self.temp_url_key,
                            '%s\n%s\n%s' % (method, expires, path),
                            sha1).hexdigest()
@@ -278,4 +280,3 @@ class StaticSwiftStorage(SwiftStorage):
         overwrite it.
         """
         return name
-
