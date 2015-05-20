@@ -30,6 +30,10 @@ class SwiftStorage(Storage):
     auth_version = setting('SWIFT_AUTH_VERSION', 1)
     tenant_name = setting('SWIFT_TENANT_NAME')
     tenant_id = setting('SWIFT_TENANT_ID')
+    user_domain_name = setting('SWIFT_USER_DOMAIN_NAME')
+    user_domain_id = setting('SWIFT_USER_DOMAIN_ID')
+    project_domain_name = setting('SWIFT_PROJECT_DOMAIN_NAME')
+    project_domain_id = setting('SWIFT_PROJECT_DOMAIN_ID')
     container_name = setting('SWIFT_CONTAINER_NAME')
     auto_create_container = setting('SWIFT_AUTO_CREATE_CONTAINER', False)
     auto_create_container_public = setting(
@@ -52,7 +56,11 @@ class SwiftStorage(Storage):
 
         os_options = {
             'tenant_id': self.tenant_id,
-            'tenant_name': self.tenant_name
+            'tenant_name': self.tenant_name,
+            'user_domain_id': self.user_domain_id,
+            'user_domain_name': self.user_domain_name,
+            'project_domain_id': self.project_domain_id,
+            'project_domain_name': self.project_domain_name
         }
         os_options.update(self.os_extra_options)
 
