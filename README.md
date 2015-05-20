@@ -39,6 +39,10 @@ django-storage-swift recognises the following options.
 | ```SWIFT_AUTH_VERSION``` | 1 | The version of the authentication protocol to use. |
 | ```SWIFT_TENANT_NAME``` | None | The tenant name to use when authenticating. |
 | ```SWIFT_TENANT_ID``` | None | The tenant id to use when authenticating. |
+| ```SWIFT_USER_DOMAIN_NAME``` | None | The domain name for the user to use when authenticating. (SWIFT_AUTH_VERSION=3 only) |
+| ```SWIFT_USER_DOMAIN_ID``` | None | The domain id for the user to use when authenticating. (SWIFT_AUTH_VERSION=3 only) |
+| ```SWIFT_PROJECT_DOMAIN_NAME``` | None | The domain name for the project/tenant to use when authenticating. (SWIFT_AUTH_VERSION=3 only) |
+| ```SWIFT_PROJECT_DOMAIN_ID``` | None | The domain id for the project/tenant to use when authenticating. (SWIFT_AUTH_VERSION=3 only) |
 | ```SWIFT_CONTAINER_NAME``` | None | The container in which to store the files. |
 | ```SWIFT_STATIC_CONTAINER_NAME``` | None | Alternate container used by StaticSwiftStorage. |
 | ```SWIFT_AUTO_CREATE_CONTAINER``` | False | Should the container be created if it does not exist? |
@@ -78,6 +82,20 @@ default_storage.connection
 ```
 
 The result should be ```<<swiftclient.client.Connection object ...>>```
+
+### Openstack Keystone/Identity v3
+
+To authenticate with a swift installation using Keystone AUTH and the Identity v3 API, you must also specify either the domain ID or name that your user and project (tenant) belongs to.
+
+```
+SWIFT_AUTH_URL='https://keystoneserver/v3'
+SWIFT_AUTH_VERSION='3'
+SWIFT_USERNAME='<<USERNAME>>'
+SWIFT_KEY='<<PASSWORD>>'
+SWIFT_TENANT_NAME='<<TENANT_NAME>>'
+SWIFT_USER_DOMAIN_NAME='<<DOMAIN_NAME>>'
+SWIFT_PROJECT_DOMAIN_NAME='<<DOMAIN_NAME>>'
+```
 
 ## Troubleshooting
 
