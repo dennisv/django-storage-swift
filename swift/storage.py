@@ -7,6 +7,7 @@ import hmac
 from hashlib import sha1
 from time import time
 from datetime import datetime
+from six import b
 
 from django.core.files import File
 from django.core.files.storage import Storage
@@ -223,8 +224,8 @@ class SwiftStorage(Storage):
             expires = int(time() + int(self.temp_url_duration))
             method = 'GET'
             path = urlparse.urlsplit(url).path
-            sig = hmac.new(self.temp_url_key,
-                           '%s\n%s\n%s' % (method, expires, path),
+            sig = hmac.new(b(self.temp_url_key),
+                           b('%s\n%s\n%s' % (method, expires, path)),
                            sha1).hexdigest()
             url = url + '?temp_url_sig=%s&temp_url_expires=%s' % (sig, expires)
 
