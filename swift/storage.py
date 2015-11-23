@@ -1,18 +1,18 @@
-from six import BytesIO
-import re
+import hmac
 import mimetypes
 import os
-from six.moves.urllib import parse as urlparse
-import hmac
-from hashlib import sha1
-from time import time
+import re
 from datetime import datetime
-from six import b
+from hashlib import sha1
+from io import BytesIO
+from time import time
 
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
 from django.core.files.storage import Storage
-from django.core.exceptions import ImproperlyConfigured
-from django.conf import settings
+from six import b
+from six.moves.urllib import parse as urlparse
 
 try:
     import swiftclient
@@ -43,8 +43,8 @@ class SwiftStorage(Storage):
     override_base_url = setting('SWIFT_BASE_URL')
     use_temp_urls = setting('SWIFT_USE_TEMP_URLS', False)
     temp_url_key = setting('SWIFT_TEMP_URL_KEY')
-    temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30*60)
-    auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60*60*23)
+    temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30 * 60)
+    auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60 * 60 * 23)
     os_extra_options = setting('SWIFT_EXTRA_OPTIONS', {})
     auto_overwrite = setting('SWIFT_AUTO_OVERWRITE', False)
     _token_creation_time = 0
@@ -71,13 +71,13 @@ class SwiftStorage(Storage):
             self.api_username,
             self.api_key,
             auth_version=self.auth_version,
-            os_options=os_options,
-        )
+            os_options=os_options)
         self.http_conn = swiftclient.http_connection(self.storage_url)
 
         # Check container
         try:
-            swiftclient.head_container(self.storage_url, self.token,
+            swiftclient.head_container(self.storage_url,
+                                       self.token,
                                        self.container_name,
                                        http_conn=self.http_conn)
         except swiftclient.ClientException:
@@ -85,7 +85,8 @@ class SwiftStorage(Storage):
             if self.auto_create_container:
                 if self.auto_create_container_public:
                     headers['X-Container-Read'] = '.r:*'
-                swiftclient.put_container(self.storage_url, self.token,
+                swiftclient.put_container(self.storage_url,
+                                          self.token,
                                           self.container_name,
                                           http_conn=self.http_conn,
                                           headers=headers)
@@ -104,11 +105,12 @@ class SwiftStorage(Storage):
                 split_override = urlparse.urlsplit(self.override_base_url)
                 split_result = [''] * 5
                 split_result[0:2] = split_override[0:2]
-                split_result[2] = (split_override[2] +
-                                   split_derived[2]).replace('//', '/')
+                split_result[2] = (split_override[2] + split_derived[2]
+                                   ).replace('//', '/')
                 self.base_url = urlparse.urlunsplit(split_result)
 
-            self.base_url = urlparse.urljoin(self.base_url, self.container_name)
+            self.base_url = urlparse.urljoin(self.base_url,
+                                             self.container_name)
             self.base_url += '/'
         else:
             self.base_url = self.override_base_url
@@ -120,8 +122,7 @@ class SwiftStorage(Storage):
                 self.api_username,
                 self.api_key,
                 auth_version=self.auth_version,
-                os_options={"tenant_name": self.tenant_name},
-            )[1]
+                os_options={"tenant_name": self.tenant_name})[1]
             self.token = new_token
         return self._token
 
@@ -135,8 +136,10 @@ class SwiftStorage(Storage):
         if self.name_prefix:
             name = self.name_prefix + name
 
-        headers, content = swiftclient.get_object(self.storage_url, self.token,
-                                                  self.container_name, name,
+        headers, content = swiftclient.get_object(self.storage_url,
+                                                  self.token,
+                                                  self.container_name,
+                                                  name,
                                                   http_conn=self.http_conn)
         buf = BytesIO(content)
         buf.name = os.path.basename(name)
@@ -171,7 +174,10 @@ class SwiftStorage(Storage):
         if name != self.last_headers_name:
             # miss -> update
             self.last_headers_value = swiftclient.head_object(
-                self.storage_url, self.token, self.container_name, name,
+                self.storage_url,
+                self.token,
+                self.container_name,
+                name,
                 http_conn=self.http_conn)
             self.last_headers_name = name
         return self.last_headers_value
@@ -185,8 +191,10 @@ class SwiftStorage(Storage):
 
     def delete(self, name):
         try:
-            swiftclient.delete_object(self.storage_url, self.token,
-                                      self.container_name, name,
+            swiftclient.delete_object(self.storage_url,
+                                      self.token,
+                                      self.container_name,
+                                      name,
                                       http_conn=self.http_conn)
         except swiftclient.ClientException:
             pass
@@ -224,8 +232,8 @@ class SwiftStorage(Storage):
             expires = int(time() + int(self.temp_url_duration))
             method = 'GET'
             path = urlparse.urlsplit(url).path
-            sig = hmac.new(b(self.temp_url_key),
-                           b('%s\n%s\n%s' % (method, expires, path)),
+            sig = hmac.new(b(self.temp_url_key), b('%s\n%s\n%s' %
+                                                   (method, expires, path)),
                            sha1).hexdigest()
             url = url + '?temp_url_sig=%s&temp_url_expires=%s' % (sig, expires)
 
@@ -238,8 +246,7 @@ class SwiftStorage(Storage):
         return '.' not in name
 
     def listdir(self, abs_path):
-        container = swiftclient.get_container(self.storage_url,
-                                              self.token,
+        container = swiftclient.get_container(self.storage_url, self.token,
                                               self.container_name)
         files = []
         dirs = []
@@ -265,8 +272,7 @@ class SwiftStorage(Storage):
                                contents='')
 
     def rmtree(self, abs_path):
-        container = swiftclient.get_container(self.storage_url,
-                                              self.token,
+        container = swiftclient.get_container(self.storage_url, self.token,
                                               self.container_name)
 
         for obj in container[1]:
