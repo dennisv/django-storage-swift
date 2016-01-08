@@ -53,7 +53,13 @@ class SwiftStorage(Storage):
     _token = ''
     name_prefix = setting('SWIFT_NAME_PREFIX')
 
-    def __init__(self):
+    def __init__(self, **settings):
+        # check if some of the settings provided as class attributes
+        # should be overwritten
+        for name, value in settings.items():
+            if hasattr(self, name):
+                setattr(self, name, value)
+
         self.last_headers_name = None
         self.last_headers_value = None
 
