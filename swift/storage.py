@@ -236,6 +236,7 @@ class SwiftStorage(Storage):
         return self._path(name)
 
     def _path(self, name):
+        name = self.name_prefix + name
         url = urlparse.urljoin(self.base_url, name)
 
         # Are we building a temporary url?
@@ -256,16 +257,17 @@ class SwiftStorage(Storage):
     def isdir(self, name):
         return '.' not in name
 
-    def listdir(self, abs_path):
+    def listdir(self, path):
         container = swiftclient.get_container(self.storage_url, self.token,
                                               self.container_name)
         files = []
         dirs = []
+        path = self.name_prefix + path
         for obj in container[1]:
-            if not obj['name'].startswith(abs_path):
+            if not obj['name'].startswith(path):
                 continue
 
-            path = obj['name'][len(abs_path):].split('/')
+            path = obj['name'][len(path):].split('/')
             key = path[0] if path[0] else path[1]
 
             if not self.isdir(key):
