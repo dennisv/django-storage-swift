@@ -243,7 +243,8 @@ class SwiftStorage(Storage):
         return self._path(name)
 
     def _path(self, name):
-        name = self.name_prefix + name
+        if self.name_prefix:
+            name = self.name_prefix + name
         url = urlparse.urljoin(self.base_url, name)
 
         # Are we building a temporary url?
