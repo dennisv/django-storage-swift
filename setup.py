@@ -14,6 +14,7 @@ setup(
         'python-swiftclient>=1.4.0',
         'python-keystoneclient>=0.2.3',
         'six',
+        'python-magic>=0.4.10',
     ],
     zip_safe=False,
     classifiers=[
