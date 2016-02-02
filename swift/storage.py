@@ -1,5 +1,6 @@
 import hmac
 import mimetypes
+import magic
 import os
 import re
 from datetime import datetime
@@ -49,6 +50,7 @@ class SwiftStorage(Storage):
     auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60 * 60 * 23)
     os_extra_options = setting('SWIFT_EXTRA_OPTIONS', {})
     auto_overwrite = setting('SWIFT_AUTO_OVERWRITE', False)
+    content_type_from_fd = setting('SWIFT_CONTENT_TYPE_FROM_FD', False)
     _token_creation_time = 0
     _token = ''
     name_prefix = setting('SWIFT_NAME_PREFIX')
@@ -161,7 +163,12 @@ class SwiftStorage(Storage):
         if self.name_prefix:
             name = self.name_prefix + name
 
-        content_type = mimetypes.guess_type(name)[0]
+        if self.content_type_from_fd:
+            content_type = magic.from_buffer(content.read(1024), mime=True)
+            # Go back to the beginning of the file
+            content.seek(0)
+        else:
+            content_type = mimetypes.guess_type(name)[0]
         swiftclient.put_object(self.storage_url,
                                self.token,
                                self.container_name,
