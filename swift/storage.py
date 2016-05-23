@@ -277,8 +277,8 @@ class SwiftStorage(Storage):
             if not obj['name'].startswith(path):
                 continue
 
-            path = obj['name'][len(path):].split('/')
-            key = path[0] if path[0] else path[1]
+            remaining_path = obj['name'][len(path):].split('/')
+            key = remaining_path[0] if remaining_path[0] else remaining_path[1]
 
             if not self.isdir(key):
                 files.append(key)
