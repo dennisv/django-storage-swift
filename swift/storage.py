@@ -55,7 +55,7 @@ class SwiftStorage(Storage):
     content_type_from_fd = setting('SWIFT_CONTENT_TYPE_FROM_FD', False)
     _token_creation_time = 0
     _token = ''
-    name_prefix = setting('SWIFT_NAME_PREFIX')
+    name_prefix = setting('SWIFT_NAME_PREFIX', "")
 
     def __init__(self, **settings):
         # check if some of the settings provided as class attributes
@@ -291,7 +291,7 @@ class SwiftStorage(Storage):
         swiftclient.put_object(self.storage_url,
                                token=self.token,
                                container=self.container_name,
-                               name='%s/.' % dirs,
+                               name='%s/.' % (self.name_prefix + dirs),
                                contents='')
 
     def rmtree(self, abs_path):
