@@ -8,6 +8,8 @@ from hashlib import sha1
 from io import BytesIO
 from time import time
 
+from django.utils.deconstruct import deconstructible
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
@@ -24,7 +26,7 @@ except ImportError:
 def setting(name, default=None):
     return getattr(settings, name, default)
 
-
+@deconstructible
 class SwiftStorage(Storage):
     api_auth_url = setting('SWIFT_AUTH_URL')
     api_username = setting('SWIFT_USERNAME')
