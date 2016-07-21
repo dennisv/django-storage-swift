@@ -15,7 +15,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
 from django.core.files.storage import Storage
 from six import b
-from six.moves.urllib import quote, parse as urlparse
+from six.moves.urllib import parse as urlparse
 
 try:
     import swiftclient
@@ -247,7 +247,7 @@ class SwiftStorage(Storage):
     def _path(self, name):
         if self.name_prefix:
             name = self.name_prefix + name
-        url = urlparse.urljoin(self.base_url, quote(name))
+        url = urlparse.urljoin(self.base_url, urlparse.quote(name))
 
         # Are we building a temporary url?
         if self.use_temp_urls:
