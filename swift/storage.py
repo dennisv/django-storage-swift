@@ -67,7 +67,7 @@ class SwiftStorage(Storage):
         self.last_headers_name = None
         self.last_headers_value = None
 
-        os_options = {
+        self.os_options = {
             'tenant_id': self.tenant_id,
             'tenant_name': self.tenant_name,
             'user_domain_id': self.user_domain_id,
@@ -75,7 +75,7 @@ class SwiftStorage(Storage):
             'project_domain_id': self.project_domain_id,
             'project_domain_name': self.project_domain_name
         }
-        os_options.update(self.os_extra_options)
+        self.os_options.update(self.os_extra_options)
 
         # Get authentication token
         self.storage_url, self.token = swiftclient.get_auth(
@@ -83,7 +83,7 @@ class SwiftStorage(Storage):
             self.api_username,
             self.api_key,
             auth_version=self.auth_version,
-            os_options=os_options)
+            os_options=self.os_options)
         self.http_conn = swiftclient.http_connection(self.storage_url)
 
         # Check container
@@ -137,7 +137,7 @@ class SwiftStorage(Storage):
                 self.api_username,
                 self.api_key,
                 auth_version=self.auth_version,
-                os_options={"tenant_name": self.tenant_name})[1]
+                os_options=self.os_options)[1]
             self.token = new_token
         return self._token
 
