@@ -313,9 +313,9 @@ class SwiftStorage(Storage):
 
 
 class StaticSwiftStorage(SwiftStorage):
-    container_name = setting('SWIFT_STATIC_CONTAINER_NAME')
-    name_prefix = setting('SWIFT_STATIC_NAME_PREFIX')
-    override_base_url = setting('SWIFT_STATIC_BASE_URL')
+    container_name = setting('SWIFT_STATIC_CONTAINER_NAME', '')
+    name_prefix = setting('SWIFT_STATIC_NAME_PREFIX', '')
+    override_base_url = setting('SWIFT_STATIC_BASE_URL', '')
 
     def get_available_name(self, name):
         """
