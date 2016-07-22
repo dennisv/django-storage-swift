@@ -23,8 +23,14 @@ except ImportError:
     raise ImproperlyConfigured("Could not load swiftclient library")
 
 
-def setting(name, default=None):
-    return getattr(settings, name, default)
+def setting(name, default='__not_set__'):
+    try:
+        return getattr(settings, name)
+    except AttributeError:
+        if default != '__not_set__':
+            return default
+        raise ImproperlyConfigured('The {} setting is required'.format(name))
+
 
 @deconstructible
 class SwiftStorage(Storage):
@@ -32,12 +38,12 @@ class SwiftStorage(Storage):
     api_username = setting('SWIFT_USERNAME')
     api_key = setting('SWIFT_KEY')
     auth_version = setting('SWIFT_AUTH_VERSION', 1)
-    tenant_name = setting('SWIFT_TENANT_NAME')
+    tenant_name = setting('SWIFT_TENANT_NAME', None)
     tenant_id = setting('SWIFT_TENANT_ID')
-    user_domain_name = setting('SWIFT_USER_DOMAIN_NAME')
-    user_domain_id = setting('SWIFT_USER_DOMAIN_ID')
-    project_domain_name = setting('SWIFT_PROJECT_DOMAIN_NAME')
-    project_domain_id = setting('SWIFT_PROJECT_DOMAIN_ID')
+    user_domain_name = setting('SWIFT_USER_DOMAIN_NAME', None)
+    user_domain_id = setting('SWIFT_USER_DOMAIN_ID', None)
+    project_domain_name = setting('SWIFT_PROJECT_DOMAIN_NAME', None)
+    project_domain_id = setting('SWIFT_PROJECT_DOMAIN_ID', None)
     container_name = setting('SWIFT_CONTAINER_NAME')
     auto_create_container = setting('SWIFT_AUTO_CREATE_CONTAINER', False)
     auto_create_container_public = setting(
@@ -45,9 +51,9 @@ class SwiftStorage(Storage):
     auto_create_container_allow_orgin = setting(
         'SWIFT_AUTO_CREATE_CONTAINER_ALLOW_ORIGIN', None)
     auto_base_url = setting('SWIFT_AUTO_BASE_URL', True)
-    override_base_url = setting('SWIFT_BASE_URL')
+    override_base_url = setting('SWIFT_BASE_URL', None)
     use_temp_urls = setting('SWIFT_USE_TEMP_URLS', False)
-    temp_url_key = setting('SWIFT_TEMP_URL_KEY')
+    temp_url_key = setting('SWIFT_TEMP_URL_KEY', None)
     temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30 * 60)
     auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60 * 60 * 23)
     os_extra_options = setting('SWIFT_EXTRA_OPTIONS', {})
@@ -55,7 +61,7 @@ class SwiftStorage(Storage):
     content_type_from_fd = setting('SWIFT_CONTENT_TYPE_FROM_FD', False)
     _token_creation_time = 0
     _token = ''
-    name_prefix = setting('SWIFT_NAME_PREFIX', "")
+    name_prefix = setting('SWIFT_NAME_PREFIX', '')
 
     def __init__(self, **settings):
         # check if some of the settings provided as class attributes
