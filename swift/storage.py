@@ -223,14 +223,15 @@ class SwiftStorage(Storage):
         s = name.strip().replace(' ', '_')
         return re.sub(r'(?u)[^-_\w./]', '', s)
 
-    def get_available_name(self, name):
+    def get_available_name(self, name, max_length=None):
         """
         Returns a filename that's free on the target storage system, and
         available for new content to be written to.
         """
 
         if not self.auto_overwrite:
-            name = super(SwiftStorage, self).get_available_name(name)
+            name = super(SwiftStorage, self).get_available_name(
+                name, max_length)
 
         return name
 
