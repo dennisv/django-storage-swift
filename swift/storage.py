@@ -312,7 +312,7 @@ class StaticSwiftStorage(SwiftStorage):
     name_prefix = setting('SWIFT_STATIC_NAME_PREFIX')
     override_base_url = setting('SWIFT_STATIC_BASE_URL')
 
-    def get_available_name(self, name):
+    def get_available_name(self, name, max_length=None):
         """
         When running collectstatic we don't want to return an available name,
         we want to return the same name because if the file exists we want to
