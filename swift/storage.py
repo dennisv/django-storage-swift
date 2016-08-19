@@ -154,8 +154,8 @@ class SwiftStorage(Storage):
     token = property(get_token, set_token)
 
     def _open(self, name, mode='rb'):
-        if self.name_prefix:
-            name = self.name_prefix + name
+        original_name = name
+        name = self.name_prefix + name
 
         headers, content = swiftclient.get_object(self.storage_url,
                                                   self.token,
@@ -163,13 +163,13 @@ class SwiftStorage(Storage):
                                                   name,
                                                   http_conn=self.http_conn)
         buf = BytesIO(content)
-        buf.name = os.path.basename(name)
+        buf.name = os.path.basename(original_name)
         buf.mode = mode
         return File(buf)
 
     def _save(self, name, content):
-        if self.name_prefix:
-            name = self.name_prefix + name
+        original_name = name
+        name = self.name_prefix + name
 
         if self.content_type_from_fd:
             content_type = magic.from_buffer(content.read(1024), mime=True)
@@ -184,7 +184,7 @@ class SwiftStorage(Storage):
                                content,
                                http_conn=self.http_conn,
                                content_type=content_type)
-        return name
+        return original_name
 
     def get_headers(self, name):
         """
@@ -194,8 +194,7 @@ class SwiftStorage(Storage):
         According to my test, we get a *2 speed up. Which makes sense : two
         api calls were made..
         """
-        if self.name_prefix:
-            name = self.name_prefix + name
+        name = self.name_prefix + name
 
         if name != self.last_headers_name:
             # miss -> update
@@ -209,6 +208,7 @@ class SwiftStorage(Storage):
         return self.last_headers_value
 
     def exists(self, name):
+        name = self.name_prefix + name
         try:
             self.get_headers(name)
         except swiftclient.ClientException:
@@ -216,6 +216,7 @@ class SwiftStorage(Storage):
         return True
 
     def delete(self, name):
+        name = self.name_prefix + name
         try:
             swiftclient.delete_object(self.storage_url,
                                       self.token,
@@ -234,17 +235,29 @@ class SwiftStorage(Storage):
         Returns a filename that's free on the target storage system, and
         available for new content to be written to.
         """
+        name = self.name_prefix + name
 
         if not self.auto_overwrite:
             name = super(SwiftStorage, self).get_available_name(
                 name, max_length)
 
-        return name
+        if self.name_prefix:
+            # Split out the name prefix so we can just return the bit of
+            # the name that's relevant upstream, since the prefix will
+            # be automatically added on subsequent requests anyway.
+            empty, prefix, final = name.partition(self.name_prefix)
+            return final
+        else:
+            return name
 
     def size(self, name):
+        # Don't need to add the prefix here as that's handled
+        # in get_headers
         return int(self.get_headers(name)['content-length'])
 
     def modified_time(self, name):
+        # Don't need to add the prefix here as that's handled
+        # in get_headers
         return datetime.fromtimestamp(
             float(self.get_headers(name)['x-timestamp']))
 
@@ -252,8 +265,7 @@ class SwiftStorage(Storage):
         return self._path(name)
 
     def _path(self, name):
-        if self.name_prefix:
-            name = self.name_prefix + name
+        name = self.name_prefix + name
         url = urlparse.urljoin(self.base_url, urlparse.quote(name))
 
         # Are we building a temporary url?
@@ -272,6 +284,7 @@ class SwiftStorage(Storage):
         raise NotImplementedError
 
     def isdir(self, name):
+        name = self.name_prefix + name
         return '.' not in name
 
     def listdir(self, path):
@@ -295,6 +308,7 @@ class SwiftStorage(Storage):
         return dirs, files
 
     def makedirs(self, dirs):
+        dirs = self.name_prefix + dirs
         swiftclient.put_object(self.storage_url,
                                token=self.token,
                                container=self.container_name,
@@ -305,6 +319,7 @@ class SwiftStorage(Storage):
         container = swiftclient.get_container(self.storage_url, self.token,
                                               self.container_name)
 
+        abs_path = self.name_prefix + abs_path
         for obj in container[1]:
             if obj['name'].startswith(abs_path):
                 swiftclient.delete_object(self.storage_url,
