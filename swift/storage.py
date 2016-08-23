@@ -7,6 +7,7 @@ from datetime import datetime
 from hashlib import sha1
 from io import BytesIO
 from time import time
+from functools import wraps
 
 from django.utils.deconstruct import deconstructible
 
@@ -30,6 +31,20 @@ def setting(name, default='__not_set__'):
         if default != '__not_set__':
             return default
         raise ImproperlyConfigured('The {} setting is required'.format(name))
+
+
+def prepend_name_prefix(func):
+    """
+    Decorator that wraps instance methods to prepend the instance's filename
+    prefix to the beginning of the referenced filename. Must only be used on
+    instance methods where the first parameter after `self` is `name` or a
+    comparable parameter of a different name.
+    """
+    @wraps(func)
+    def prepend_prefix(self, name, *args, **kwargs):
+        name = self.name_prefix + name
+        return func(self, name, *args, **kwargs)
+    return prepend_prefix
 
 
 @deconstructible
@@ -194,8 +209,6 @@ class SwiftStorage(Storage):
         According to my test, we get a *2 speed up. Which makes sense : two
         api calls were made..
         """
-        name = self.name_prefix + name
-
         if name != self.last_headers_name:
             # miss -> update
             self.last_headers_value = swiftclient.head_object(
@@ -207,16 +220,16 @@ class SwiftStorage(Storage):
             self.last_headers_name = name
         return self.last_headers_value
 
+    @prepend_name_prefix
     def exists(self, name):
-        name = self.name_prefix + name
         try:
             self.get_headers(name)
         except swiftclient.ClientException:
             return False
         return True
 
+    @prepend_name_prefix
     def delete(self, name):
-        name = self.name_prefix + name
         try:
             swiftclient.delete_object(self.storage_url,
                                       self.token,
@@ -230,13 +243,12 @@ class SwiftStorage(Storage):
         s = name.strip().replace(' ', '_')
         return re.sub(r'(?u)[^-_\w./]', '', s)
 
+    @prepend_name_prefix
     def get_available_name(self, name, max_length=None):
         """
         Returns a filename that's free on the target storage system, and
         available for new content to be written to.
         """
-        name = self.name_prefix + name
-
         if not self.auto_overwrite:
             name = super(SwiftStorage, self).get_available_name(
                 name, max_length)
@@ -250,22 +262,20 @@ class SwiftStorage(Storage):
         else:
             return name
 
+    @prepend_name_prefix
     def size(self, name):
-        # Don't need to add the prefix here as that's handled
-        # in get_headers
         return int(self.get_headers(name)['content-length'])
 
+    @prepend_name_prefix
     def modified_time(self, name):
-        # Don't need to add the prefix here as that's handled
-        # in get_headers
         return datetime.fromtimestamp(
             float(self.get_headers(name)['x-timestamp']))
 
+    @prepend_name_prefix
     def url(self, name):
         return self._path(name)
 
     def _path(self, name):
-        name = self.name_prefix + name
         url = urlparse.urljoin(self.base_url, urlparse.quote(name))
 
         # Are we building a temporary url?
@@ -283,16 +293,16 @@ class SwiftStorage(Storage):
     def path(self, name):
         raise NotImplementedError
 
+    @prepend_name_prefix
     def isdir(self, name):
-        name = self.name_prefix + name
         return '.' not in name
 
+    @prepend_name_prefix
     def listdir(self, path):
         container = swiftclient.get_container(self.storage_url, self.token,
                                               self.container_name)
         files = []
         dirs = []
-        path = self.name_prefix + path
         for obj in container[1]:
             if not obj['name'].startswith(path):
                 continue
@@ -307,19 +317,19 @@ class SwiftStorage(Storage):
 
         return dirs, files
 
+    @prepend_name_prefix
     def makedirs(self, dirs):
-        dirs = self.name_prefix + dirs
         swiftclient.put_object(self.storage_url,
                                token=self.token,
                                container=self.container_name,
                                name='%s/.' % (self.name_prefix + dirs),
                                contents='')
 
+    @prepend_name_prefix
     def rmtree(self, abs_path):
         container = swiftclient.get_container(self.storage_url, self.token,
                                               self.container_name)
 
-        abs_path = self.name_prefix + abs_path
         for obj in container[1]:
             if obj['name'].startswith(abs_path):
                 swiftclient.delete_object(self.storage_url,
