@@ -145,6 +145,8 @@ class SwiftStorage(Storage):
             self.base_url = self.override_base_url
 
     def get_token(self):
+        if self.use_simple_auth:
+            return self._token
         if time() - self._token_creation_time >= self.auth_token_duration:
             new_token = swiftclient.get_auth(
                 self.api_auth_url,
