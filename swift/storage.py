@@ -82,12 +82,22 @@ class SwiftStorage(Storage):
         os_options.update(self.os_extra_options)
 
         # Get authentication token
-        self.storage_url, self.token = swiftclient.get_auth(
-            self.api_auth_url,
-            self.api_username,
-            self.api_key,
-            auth_version=self.auth_version,
-            os_options=os_options)
+        if self.use_simple_auth:
+            if self.os_storage_url != None:
+                self.storage_url = self.os_storage_url
+            else:
+                raise ImproperlyConfigured("Simple auth missing os_storage_url")
+            if self.os_token != None:
+                self.token = self.os_token
+            else:
+                raise ImproperlyConfigured("Simple auth missing os_token")
+        else:
+            self.storage_url, self.token = swiftclient.get_auth(
+                self.api_auth_url,
+                self.api_username,
+                self.api_key,
+                auth_version=self.auth_version,
+                os_options=os_options)
         self.http_conn = swiftclient.http_connection(self.storage_url)
 
         # Check container
