@@ -57,6 +57,10 @@ class SwiftStorage(Storage):
     _token = ''
     name_prefix = setting('SWIFT_NAME_PREFIX', "")
 
+    use_simple_auth = setting('SWIFT_SIMPLE_AUTH',False)
+    os_storage_url = setting('SWIFT_OS_STORAGE_URL',None)
+    os_token = setting('SWIFT_OS_TOKEN',None)
+
     def __init__(self, **settings):
         # check if some of the settings provided as class attributes
         # should be overwritten
