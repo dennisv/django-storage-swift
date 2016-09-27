@@ -57,6 +57,10 @@ class SwiftStorage(Storage):
     _token = ''
     name_prefix = setting('SWIFT_NAME_PREFIX', "")
 
+    use_simple_auth = setting('SWIFT_SIMPLE_AUTH',False)
+    os_storage_url = setting('SWIFT_OS_STORAGE_URL',None)
+    os_token = setting('SWIFT_OS_TOKEN',None)
+
     def __init__(self, **settings):
         # check if some of the settings provided as class attributes
         # should be overwritten
@@ -78,12 +82,22 @@ class SwiftStorage(Storage):
         os_options.update(self.os_extra_options)
 
         # Get authentication token
-        self.storage_url, self.token = swiftclient.get_auth(
-            self.api_auth_url,
-            self.api_username,
-            self.api_key,
-            auth_version=self.auth_version,
-            os_options=os_options)
+        if self.use_simple_auth:
+            if self.os_storage_url != None:
+                self.storage_url = self.os_storage_url
+            else:
+                raise ImproperlyConfigured("Simple auth missing os_storage_url")
+            if self.os_token != None:
+                self.token = self.os_token
+            else:
+                raise ImproperlyConfigured("Simple auth missing os_token")
+        else:
+            self.storage_url, self.token = swiftclient.get_auth(
+                self.api_auth_url,
+                self.api_username,
+                self.api_key,
+                auth_version=self.auth_version,
+                os_options=os_options)
         self.http_conn = swiftclient.http_connection(self.storage_url)
 
         # Check container
@@ -131,6 +145,8 @@ class SwiftStorage(Storage):
             self.base_url = self.override_base_url
 
     def get_token(self):
+        if self.use_simple_auth:
+            return self._token
         if time() - self._token_creation_time >= self.auth_token_duration:
             new_token = swiftclient.get_auth(
                 self.api_auth_url,

@@ -83,6 +83,12 @@ django-storage-swift recognises the following options.
 +----------------------------------------------+-----------+----------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``SWIFT_CONTENT_TYPE_FROM_FD``               | False     | Determine the files mimetypes from the actual content rather than from their filename (default).                                                   |
 +----------------------------------------------+-----------+----------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``SWIFT_SIMPLE_AUTH``                        | False     | Use the provided STORAGE URL and TOKEN rather than querying 2.0 auth for tokens periodically.                                                      |
++----------------------------------------------+-----------+----------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``SWIFT_OS_STORAGE_URL``                     | None      | Specify the OpenStack storage URL, used with SWIFT_SIMPLE_AUTH                                                                                     |
++----------------------------------------------+-----------+----------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``SWIFT_OS_TOKEN``                           | None      | Specify the OpenStack authentication token, used with SWIFT_SIMPLE_AUTH                                                                            |
++----------------------------------------------+-----------+----------------------------------------------------------------------------------------------------------------------------------------------------+
 
 SWIFT\_BASE\_URL
 ~~~~~~~~~~~~~~~~
@@ -133,6 +139,17 @@ You can verify that swift is indeed being used by running, inside
     default_storage.connection
 
 The result should be ``<<swiftclient.client.Connection object ...>>``
+
+OpenStack Simple Auth
+---------------------
+
+To authenticate with a swift installation using the method of a storage URL and generated token, please see the following:
+
+.. code:: python
+
+    SWIFT_SIMPLE_AUTH = True
+    SWIFT_OS_STORAGE_URL = 'https://storage-server:port/v1/AUTH_key'
+    SWIFT_OS_TOKEN = 'swiftgeneratedtoken'
 
 Openstack Keystone/Identity v3
 ------------------------------
