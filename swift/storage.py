@@ -182,7 +182,7 @@ class SwiftStorage(Storage):
         buf.mode = mode
         return File(buf)
 
-    def _save(self, name, content):
+    def _save(self, name, content, headers=None):
         original_name = name
         name = self.name_prefix + name
 
@@ -198,7 +198,8 @@ class SwiftStorage(Storage):
                                name,
                                content,
                                http_conn=self.http_conn,
-                               content_type=content_type)
+                               content_type=content_type,
+                               headers=headers)
         return original_name
 
     def get_headers(self, name):
