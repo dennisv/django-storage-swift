@@ -3,6 +3,8 @@
 /dist/
 /*.egg-info
 /*.egg
+/.tox/
+.coverage
 
 .idea/
 *.iml
