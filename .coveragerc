@@ -1,3 +1,5 @@
 [run]
 source =
     swift/
+omit =
+    tests/
