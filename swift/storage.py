@@ -1,20 +1,18 @@
 import hmac
 import mimetypes
-import magic
 import os
 import re
 from datetime import datetime
+from functools import wraps
 from hashlib import sha1
 from io import BytesIO
 from time import time
-from functools import wraps
-
-from django.utils.deconstruct import deconstructible
-
+import magic
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
 from django.core.files.storage import Storage
+from django.utils.deconstruct import deconstructible
 from six import b
 from six.moves.urllib import parse as urlparse
 
