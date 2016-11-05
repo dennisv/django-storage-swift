@@ -75,6 +75,7 @@ class SwiftStorage(Storage):
     _token_creation_time = 0
     _token = ''
     name_prefix = setting('SWIFT_NAME_PREFIX', '')
+    full_listing = setting('SWIFT_FULL_LISTING', True)
 
     def __init__(self, **settings):
         # check if some of the settings provided as class attributes
@@ -299,13 +300,11 @@ class SwiftStorage(Storage):
     @prepend_name_prefix
     def listdir(self, path):
         container = swiftclient.get_container(self.storage_url, self.token,
-                                              self.container_name)
+                                              self.container_name, prefix=path,
+                                              full_listing=self.full_listing)
         files = []
         dirs = []
         for obj in container[1]:
-            if not obj['name'].startswith(path):
-                continue
-
             remaining_path = obj['name'][len(path):].split('/')
             key = remaining_path[0] if remaining_path[0] else remaining_path[1]
 
