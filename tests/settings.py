@@ -12,6 +12,7 @@ DATABASES = {
 
 SWIFT_AUTH_URL = 'https://objects.example.com'
 SWIFT_USERNAME = 'user'
-SWIFT_KEY = 'password'
+SWIFT_PASSWORD = 'password'
 SWIFT_TENANT_ID = '11223344556677889900aabbccddeeff'
 SWIFT_CONTAINER_NAME = 'www-media'
+SWIFT_STATIC_CONTAINER_NAME = 'www-static'
