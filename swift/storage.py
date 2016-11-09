@@ -21,14 +21,71 @@ try:
 except ImportError:
     raise ImproperlyConfigured("Could not load swiftclient library")
 
+DEFAULT_AUTH_VERSION = '1'
 
-def setting(name, default='__not_set__'):
-    try:
-        return getattr(settings, name)
-    except AttributeError:
-        if default != '__not_set__':
-            return default
-        raise ImproperlyConfigured('The {} setting is required'.format(name))
+
+def setting(name, default=None):
+    return getattr(settings, name, default)
+
+
+def validate_settings(backend):
+    # Check mandatory parameters
+    if not backend.api_auth_url:
+        raise ImproperlyConfigured("The SWIFT_AUTH_URL setting is required")
+
+    # Mandatory auth params
+    if not backend.api_username:
+        raise ImproperlyConfigured("The SWIFT_USERNAME setting is required")
+
+    if not backend.api_key:
+        raise ImproperlyConfigured("The SWIFT_KEY or SWIFT_PASSWORD setting is required")
+
+    if not backend.container_name:
+        raise ImproperlyConfigured("No container name defined. Use SWIFT_CONTAINER_NAME \
+        or SWIFT_STATIC_CONTAINER_NAME depending on the backend")
+
+    if not backend.auth_version:
+        raise ImproperlyConfigured("The SWIFT_AUTH_VERSION setting is required")
+
+    # Auth Parameters for different api versions:
+    # http://docs.openstack.org/developer/python-swiftclient/cli.html#authentication
+    backend.auth_version = str(backend.auth_version).split('.')[0]
+
+    # Detect auth version
+    if (backend.user_domain_name or backend.user_domain_id) and \
+       (backend.project_domain_name or backend.project_domain_id):
+        # Set version 3 if domain and project scoping is defined
+        backend.auth_version = '3'
+    else:
+        if backend.tenant_name or backend.tenant_id:
+            # Set version 2 if a tenant is defined
+            backend.auth_version = '2'
+        else:
+            # Set version 1 if no tenant is defined
+            backend.auth_version = '1'
+
+    # Validate v2 auth parameters
+    if backend.auth_version == '2':
+        if not (backend.tenant_name or backend.tenant_id):
+            raise ImproperlyConfigured("SWIFT_TENANT_ID or SWIFT_TENANT_NAME must \
+             be defined when using version 2 auth")
+
+    if backend.auth_version == '3':
+        if not (backend.user_domain_name or backend.user_domain_id):
+            raise ImproperlyConfigured("SWIFT_USER_DOMAIN_NAME or \
+            SWIFT_USER_DOMAIN_ID must be defined when using version 3 auth")
+
+        if not (backend.project_domain_name or backend.project_domain_id):
+            raise ImproperlyConfigured("SWIFT_PROJECT_DOMAIN_NAME or \
+            SWIFT_PROJECT_DOMAIN_ID must be defined when using version 3 auth")
+
+        if not (backend.tenant_name or backend.tenant_id):
+            raise ImproperlyConfigured("SWIFT_PROJECT_ID or SWIFT_PROJECT_NAME must \
+             be defined when using version 3 auth")
+
+    # Misc sanity checks
+    if not isinstance(backend.os_extra_options, dict):
+        raise ImproperlyConfigured("SWIFT_EXTRA_OPTIONS must be a dict")
 
 
 def prepend_name_prefix(func):
@@ -49,24 +106,24 @@ def prepend_name_prefix(func):
 class SwiftStorage(Storage):
     api_auth_url = setting('SWIFT_AUTH_URL')
     api_username = setting('SWIFT_USERNAME')
-    api_key = setting('SWIFT_KEY')
-    auth_version = setting('SWIFT_AUTH_VERSION', 1)
-    tenant_name = setting('SWIFT_TENANT_NAME', None)
-    tenant_id = setting('SWIFT_TENANT_ID')
-    user_domain_name = setting('SWIFT_USER_DOMAIN_NAME', None)
-    user_domain_id = setting('SWIFT_USER_DOMAIN_ID', None)
-    project_domain_name = setting('SWIFT_PROJECT_DOMAIN_NAME', None)
-    project_domain_id = setting('SWIFT_PROJECT_DOMAIN_ID', None)
+    api_key = setting('SWIFT_KEY') or setting('SWIFT_PASSWORD')
+    auth_version = setting('SWIFT_AUTH_VERSION', DEFAULT_AUTH_VERSION)
+    tenant_name = setting('SWIFT_TENANT_NAME') or setting('SWIFT_PROJECT_NAME')
+    tenant_id = setting('SWIFT_TENANT_ID') or setting('SWIFT_PROJECT_ID')
+    user_domain_name = setting('SWIFT_USER_DOMAIN_NAME')
+    user_domain_id = setting('SWIFT_USER_DOMAIN_ID')
+    project_domain_name = setting('SWIFT_PROJECT_DOMAIN_NAME')
+    project_domain_id = setting('SWIFT_PROJECT_DOMAIN_ID')
     container_name = setting('SWIFT_CONTAINER_NAME')
     auto_create_container = setting('SWIFT_AUTO_CREATE_CONTAINER', False)
     auto_create_container_public = setting(
         'SWIFT_AUTO_CREATE_CONTAINER_PUBLIC', False)
     auto_create_container_allow_orgin = setting(
-        'SWIFT_AUTO_CREATE_CONTAINER_ALLOW_ORIGIN', None)
+        'SWIFT_AUTO_CREATE_CONTAINER_ALLOW_ORIGIN')
     auto_base_url = setting('SWIFT_AUTO_BASE_URL', True)
-    override_base_url = setting('SWIFT_BASE_URL', None)
+    override_base_url = setting('SWIFT_BASE_URL')
     use_temp_urls = setting('SWIFT_USE_TEMP_URLS', False)
-    temp_url_key = setting('SWIFT_TEMP_URL_KEY', None)
+    temp_url_key = setting('SWIFT_TEMP_URL_KEY')
     temp_url_duration = setting('SWIFT_TEMP_URL_DURATION', 30 * 60)
     auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60 * 60 * 23)
     os_extra_options = setting('SWIFT_EXTRA_OPTIONS', {})
@@ -83,6 +140,8 @@ class SwiftStorage(Storage):
         for name, value in settings.items():
             if hasattr(self, name):
                 setattr(self, name, value)
+
+        validate_settings(self)
 
         self.last_headers_name = None
         self.last_headers_value = None
@@ -339,7 +398,7 @@ class SwiftStorage(Storage):
 class StaticSwiftStorage(SwiftStorage):
     container_name = setting('SWIFT_STATIC_CONTAINER_NAME', '')
     name_prefix = setting('SWIFT_STATIC_NAME_PREFIX', '')
-    override_base_url = setting('SWIFT_STATIC_BASE_URL', None)
+    override_base_url = setting('SWIFT_STATIC_BASE_URL')
 
     def get_available_name(self, name, max_length=None):
         """
