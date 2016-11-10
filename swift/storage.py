@@ -21,8 +21,6 @@ try:
 except ImportError:
     raise ImproperlyConfigured("Could not load swiftclient library")
 
-DEFAULT_AUTH_VERSION = '1'
-
 
 def setting(name, default=None):
     return getattr(settings, name, default)
@@ -44,25 +42,20 @@ def validate_settings(backend):
         raise ImproperlyConfigured("No container name defined. Use SWIFT_CONTAINER_NAME \
         or SWIFT_STATIC_CONTAINER_NAME depending on the backend")
 
-    if not backend.auth_version:
-        raise ImproperlyConfigured("The SWIFT_AUTH_VERSION setting is required")
-
-    # Auth Parameters for different api versions:
+    # Detect auth version if not defined
     # http://docs.openstack.org/developer/python-swiftclient/cli.html#authentication
-    backend.auth_version = str(backend.auth_version).split('.')[0]
-
-    # Detect auth version
-    if (backend.user_domain_name or backend.user_domain_id) and \
-       (backend.project_domain_name or backend.project_domain_id):
-        # Set version 3 if domain and project scoping is defined
-        backend.auth_version = '3'
-    else:
-        if backend.tenant_name or backend.tenant_id:
-            # Set version 2 if a tenant is defined
-            backend.auth_version = '2'
+    if not backend.auth_version:
+        if (backend.user_domain_name or backend.user_domain_id) and \
+           (backend.project_domain_name or backend.project_domain_id):
+            # Set version 3 if domain and project scoping is defined
+            backend.auth_version = '3'
         else:
-            # Set version 1 if no tenant is defined
-            backend.auth_version = '1'
+            if backend.tenant_name or backend.tenant_id:
+                # Set version 2 if a tenant is defined
+                backend.auth_version = '2'
+            else:
+                # Set version 1 if no tenant is not defined
+                backend.auth_version = '1'
 
     # Validate v2 auth parameters
     if backend.auth_version == '2':
@@ -70,6 +63,7 @@ def validate_settings(backend):
             raise ImproperlyConfigured("SWIFT_TENANT_ID or SWIFT_TENANT_NAME must \
              be defined when using version 2 auth")
 
+    # Validate v3 auth parameters
     if backend.auth_version == '3':
         if not (backend.user_domain_name or backend.user_domain_id):
             raise ImproperlyConfigured("SWIFT_USER_DOMAIN_NAME or \
@@ -107,7 +101,7 @@ class SwiftStorage(Storage):
     api_auth_url = setting('SWIFT_AUTH_URL')
     api_username = setting('SWIFT_USERNAME')
     api_key = setting('SWIFT_KEY') or setting('SWIFT_PASSWORD')
-    auth_version = setting('SWIFT_AUTH_VERSION', DEFAULT_AUTH_VERSION)
+    auth_version = setting('SWIFT_AUTH_VERSION')
     tenant_name = setting('SWIFT_TENANT_NAME') or setting('SWIFT_PROJECT_NAME')
     tenant_id = setting('SWIFT_TENANT_ID') or setting('SWIFT_PROJECT_ID')
     user_domain_name = setting('SWIFT_USER_DOMAIN_NAME')
