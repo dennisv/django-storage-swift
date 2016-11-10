@@ -144,7 +144,7 @@ You can verify that swift is indeed being used by running, inside
 .. code:: python
 
     from django.core.files.storage import default_storage
-    default_storage.connection
+    default_storage.http_conn
 
 The result should be ``<<swiftclient.client.Connection object ...>>``
 
