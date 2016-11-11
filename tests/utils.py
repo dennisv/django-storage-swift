@@ -1,6 +1,8 @@
 
-BASE_URL = 'https://objects.example.com'
-TOKEN = 'token'
+BASE_URL = 'https://objects.example.com/v1'
+AUTH_URL = 'https://auth.example.com'
+TENANT_ID = '11223344556677889900aabbccddeeff'
+TOKEN = 'auth_token'
 
 AUTH_PARAMETERS = {
     'v1': {
@@ -31,12 +33,18 @@ def auth_params(version, **kwargs):
     return kwargs
 
 
+def base_url(container_name=None):
+    if container_name:
+        return "{}/{}/".format(base_url(), container_name)
+    return "{}/AUTH_{}".format(BASE_URL, TENANT_ID)
+
+
 class FakeSwift(object):
     ClientException = None
 
     @classmethod
-    def get_auth(cls, *args, **kwargs):
-        return BASE_URL, TOKEN
+    def get_auth(cls, auth_url, user, passwd, **kwargs):
+        return base_url(), TOKEN
 
     @classmethod
     def http_connection(cls, *args, **kwargs):
