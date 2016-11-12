@@ -5,6 +5,7 @@ from mock import patch
 from .utils import FakeSwift, auth_params, base_url, CONTAINER_CONTENTS
 from swift import storage
 
+
 class SwiftStorageTestCase(TestCase):
 
     def default_storage(self, auth_version, **params):
@@ -109,12 +110,12 @@ class BackendTest(SwiftStorageTestCase):
         self.assertEqual(size, 4096)
 
     def test_object_exists(self):
-        """Test for the existance of an object"""
+        """Test for the existence of an object"""
         exists = self.backend.exists('images/test.png')
         self.assertTrue(exists)
 
     def test_object_dont_exists(self):
-        """Test for the existance of an non-existent object"""
+        """Test for the existence of an non-existent object"""
         exists = self.backend.exists('warez/some_random_movie.mp4')
         self.assertFalse(exists)
 

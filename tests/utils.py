@@ -1,3 +1,4 @@
+from copy import deepcopy
 
 BASE_URL = 'https://objects.example.com/v1'
 AUTH_URL = 'https://auth.example.com'
@@ -83,17 +84,13 @@ class FakeSwift(object):
         pass
 
     @classmethod
-    def head_object(self, url, token, container, name, **kwargs):
-        object = None
+    def head_object(cls, url, token, container, name, **kwargs):
         for obj in FakeSwift.objects:
             if obj['name'] == name:
-                object = obj
-                break
-        else:
-            raise FakeSwift.ClientException
-
-        object['content-length'] = object['bytes']
-        return object
+                object = deepcopy(obj)
+                object['content-length'] = obj['bytes']
+                return object
+        raise FakeSwift.ClientException
 
     @classmethod
     def get_container(cls, storage_url, token, container, **kwargs):
@@ -110,7 +107,7 @@ class FakeSwift(object):
     @classmethod
     def put_object(cls, url, name=None, token=None, container=None, contents=None):
         if not name:
-            raise ValueError("Attempting to add an object with not name/path")
+            raise ValueError("Attempting to add an object with no name/path")
         FakeSwift.objects.append(create_object(name))
 
 
