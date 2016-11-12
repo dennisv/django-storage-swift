@@ -1,9 +1,9 @@
+from copy import deepcopy
 from django.test import TestCase
 from django.core.exceptions import ImproperlyConfigured
 from mock import patch
-from .utils import FakeSwift, auth_params, base_url
+from .utils import FakeSwift, auth_params, base_url, CONTAINER_CONTENTS
 from swift import storage
-
 
 class SwiftStorageTestCase(TestCase):
 
@@ -65,7 +65,7 @@ class ConfigTest(SwiftStorageTestCase):
         """Automatically resolve base url"""
         container_name = "data"
         backend = self.default_storage('v3', container_name=container_name, auto_base_url=True)
-        self.assertEqual(backend.base_url, base_url(container_name=container_name))
+        self.assertEqual(backend.base_url, base_url(container=container_name))
 
     def test_override_base_url_no_auto(self):
         """Test overriding base url without auto base url"""
@@ -90,9 +90,63 @@ class ConfigTest(SwiftStorageTestCase):
     #     self.assertEqual(backend.base_url, url)
 
 
-# @patch('swift.storage.swiftclient', new=FakeSwift)
-# class BackendTest(TestCase):
-#
-#     def test_listdir(self):
-#         backend = storage.SwiftStorage(**auth_params('v2', container_name="data"))
-#         backend.listdir('/')
+@patch('swift.storage.swiftclient', new=FakeSwift)
+class BackendTest(SwiftStorageTestCase):
+
+    @patch('swift.storage.swiftclient', new=FakeSwift)
+    def setUp(self):
+        self.backend = self.default_storage('v3', container_name="data")
+
+    def test_url(self):
+        """Get url for a resource"""
+        name = 'images/test.png'
+        url = self.backend.url(name)
+        self.assertEqual(url, base_url(container=self.backend.container_name, path=name))
+
+    def test_object_size(self):
+        """Test getting object size"""
+        size = self.backend.size('images/test.png')
+        self.assertEqual(size, 4096)
+
+    def test_object_exists(self):
+        """Test for the existance of an object"""
+        exists = self.backend.exists('images/test.png')
+        self.assertTrue(exists)
+
+    def test_object_dont_exists(self):
+        """Test for the existance of an non-existent object"""
+        exists = self.backend.exists('warez/some_random_movie.mp4')
+        self.assertFalse(exists)
+
+    def test_listdir(self):
+        """List root in container"""
+        dirs, files = self.backend.listdir('')
+        self.assertListEqual(dirs, ['images', 'css', 'js'])
+        self.assertListEqual(files, ['root.txt'])
+
+    @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
+    def test_rmtree(self):
+        """Remove folder in storage"""
+        backend = self.default_storage('v3', container_name="data")
+        backend.rmtree('images')
+        dirs, files = self.backend.listdir('')
+        self.assertListEqual(dirs, ['css', 'js'])
+        self.assertListEqual(files, ['root.txt'])
+
+    @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
+    def test_mkdirs(self):
+        """Make directory/pseudofolder in backend"""
+        backend = self.default_storage('v3', container_name="data")
+        backend.makedirs('downloads')
+        dirs, files = self.backend.listdir('')
+        self.assertListEqual(dirs, ['images', 'css', 'js', 'downloads'])
+        self.assertListEqual(files, ['root.txt'])
+
+    @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
+    def test_delete_object(self):
+        """Delete an object"""
+        backend = self.default_storage('v3', container_name="data")
+        backend.delete('root.txt')
+        dirs, files = self.backend.listdir('')
+        self.assertListEqual(dirs, ['images', 'css', 'js'])
+        self.assertListEqual(files, [])

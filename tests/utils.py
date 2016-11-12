@@ -33,14 +33,42 @@ def auth_params(version, **kwargs):
     return kwargs
 
 
-def base_url(container_name=None):
-    if container_name:
-        return "{}/{}/".format(base_url(), container_name)
+def create_object(path, content_type='image/png', bytes=4096,
+                  hash='fcfc6539ce4e545ce58bafeeac3303a7',
+                  last_modified='2016-08-27T23:12:22.993170'):
+    """Creates a fake swift object"""
+    return {
+        'hash': hash,
+        'last_modified': last_modified,
+        'name': path,
+        'content_type': content_type,
+        'bytes': bytes,
+    }
+
+# Files stored in the backend by default
+CONTAINER_FILES = [
+    'root.txt',
+    'images/test.png',
+    'css/test.css',
+    'js/test.js',
+]
+
+CONTAINER_CONTENTS = [create_object(path) for path in CONTAINER_FILES]
+
+
+def base_url(container=None, path=None):
+    if container:
+        return "{}/{}/{}".format(base_url(), container, path or '')
     return "{}/AUTH_{}".format(BASE_URL, TENANT_ID)
 
 
+class ClientException(Exception):
+    pass
+
+
 class FakeSwift(object):
-    ClientException = None
+    ClientException = ClientException
+    objects = CONTAINER_CONTENTS
 
     @classmethod
     def get_auth(cls, auth_url, user, passwd, **kwargs):
@@ -55,10 +83,36 @@ class FakeSwift(object):
         pass
 
     @classmethod
-    def get_container(cls, *args, **kwargs):
-        pass
+    def head_object(self, url, token, container, name, **kwargs):
+        object = None
+        for obj in FakeSwift.objects:
+            if obj['name'] == name:
+                object = obj
+                break
+        else:
+            raise FakeSwift.ClientException
+
+        object['content-length'] = object['bytes']
+        return object
+
+    @classmethod
+    def get_container(cls, storage_url, token, container, **kwargs):
+        """Returns a tuple: Response headers, list of objects"""
+        return None, FakeSwift.objects
+
+    @classmethod
+    def delete_object(cls, url, token, container, name, **kwargs):
+        for obj in FakeSwift.objects:
+            if obj['name'] == name:
+                FakeSwift.objects.remove(obj)
+                return
+
+    @classmethod
+    def put_object(cls, url, name=None, token=None, container=None, contents=None):
+        if not name:
+            raise ValueError("Attempting to add an object with not name/path")
+        FakeSwift.objects.append(create_object(name))
 
 
 class FakeHttpConn(object):
     pass
-
