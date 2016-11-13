@@ -105,7 +105,8 @@ class FakeSwift(object):
                 return
 
     @classmethod
-    def put_object(cls, url, name=None, token=None, container=None, contents=None):
+    def put_object(cls, url, token, container, name=None, contents=None,
+                   http_conn=None, content_type=None, headers=None):
         if not name:
             raise ValueError("Attempting to add an object with no name/path")
         FakeSwift.objects.append(create_object(name))

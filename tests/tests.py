@@ -151,3 +151,11 @@ class BackendTest(SwiftStorageTestCase):
         dirs, files = self.backend.listdir('')
         self.assertListEqual(dirs, ['images', 'css', 'js'])
         self.assertListEqual(files, [])
+
+    @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
+    def test_save(self):
+        """Save an object"""
+        backend = self.default_storage('v3', container_name="data")
+        name = backend._save("test.txt", "test")
+        dirs, files = self.backend.listdir('')
+        self.assertEqual(files.count(name), 1)
