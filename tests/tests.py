@@ -8,13 +8,13 @@ from swift import storage
 
 class SwiftStorageTestCase(TestCase):
 
-    def default_storage(self, auth_version, **params):
+    def default_storage(self, auth_version, exclude=None, **params):
         """Instantiate default storage with auth parameters"""
-        return storage.SwiftStorage(**auth_params(auth_version, **params))
+        return storage.SwiftStorage(**auth_params(auth_version, exclude=exclude, **params))
 
-    def static_storage(self, auth_version, **params):
+    def static_storage(self, auth_version, exclude=None, **params):
         """Instantiate static storage with auth parameters"""
-        return storage.StaticSwiftStorage(**auth_params(auth_version, **params))
+        return storage.StaticSwiftStorage(**auth_params(auth_version, exclude=exclude, **params))
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)
@@ -30,6 +30,31 @@ class AuthTest(SwiftStorageTestCase):
         """Instantiate static backend with no parameters"""
         with self.assertRaises(ImproperlyConfigured):
             storage.StaticSwiftStorage()
+
+    def test_mandatory_auth_url(self):
+        """Test ImproperlyConfigured if api_auth_url is missing"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v3', exclude=['api_auth_url'], container_name="data")
+
+    def test_mandatory_username(self):
+        """Test ImproperlyConfigured if api_auth_url is missing"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v3', exclude=['api_username'], container_name="data")
+
+    def test_mandatory_container_name(self):
+        """Test ImproperlyConfigured if container_name is missing"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v3')
+
+    def test_mandatory_static_container_name(self):
+        """Test ImproperlyConfigured if container_name is missing"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.static_storage('v3')
+
+    def test_mandatory_password(self):
+        """Test ImproperlyConfigured if api_key is missing"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v3', exclude=['api_key'], container_name="data")
 
     def test_auth_v1(self):
         """Test version 1 authentication"""

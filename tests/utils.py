@@ -28,9 +28,12 @@ AUTH_PARAMETERS = {
 }
 
 
-def auth_params(version, **kwargs):
+def auth_params(version, exclude=None, **kwargs):
     """Appends auth parameters"""
     kwargs.update(AUTH_PARAMETERS[version])
+    if exclude:
+        for name in exclude:
+            del kwargs[name]
     return kwargs
 
 
