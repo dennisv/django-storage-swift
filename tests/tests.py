@@ -115,8 +115,8 @@ class ConfigTest(SwiftStorageTestCase):
                                        auto_base_url=True,
                                        override_base_url=url)
         self.assertTrue(backend.base_url.startswith(url))
-        self.assertEqual(len(backend.base_url),
-                         len(url) + len(container) + len(TENANT_ID) + len('/v1/AUTH_//'))
+        storage_url = '{}/v1/AUTH_{}/{}/'.format(url, TENANT_ID, container)
+        self.assertEqual(backend.base_url, storage_url)
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)
