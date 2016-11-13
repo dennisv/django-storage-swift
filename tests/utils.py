@@ -93,6 +93,10 @@ class FakeSwift(object):
         raise FakeSwift.ClientException
 
     @classmethod
+    def get_object(cls, url, token, container, name, **kwargs):
+        return None, bytearray(4096)
+
+    @classmethod
     def get_container(cls, storage_url, token, container, **kwargs):
         """Returns a tuple: Response headers, list of objects"""
         return None, FakeSwift.objects

@@ -159,3 +159,9 @@ class BackendTest(SwiftStorageTestCase):
         name = backend._save("test.txt", "test")
         dirs, files = self.backend.listdir('')
         self.assertEqual(files.count(name), 1)
+
+    def test_open(self):
+        file = self.backend._open('root.txt')
+        self.assertEqual(file.name, 'root.txt')
+        data = file.read()
+        self.assertEqual(len(data), 4096)
