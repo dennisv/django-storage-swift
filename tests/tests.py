@@ -2,7 +2,7 @@ from copy import deepcopy
 from django.test import TestCase
 from django.core.exceptions import ImproperlyConfigured
 from mock import patch
-from .utils import FakeSwift, auth_params, base_url, CONTAINER_CONTENTS
+from .utils import FakeSwift, auth_params, base_url, CONTAINER_CONTENTS, TENANT_ID
 from swift import storage
 
 
@@ -20,6 +20,37 @@ class SwiftStorageTestCase(TestCase):
 @patch('swift.storage.swiftclient', new=FakeSwift)
 class AuthTest(SwiftStorageTestCase):
     """Test authentication parameters"""
+
+    def test_auth_v1(self):
+        """Test version 1 authentication"""
+        self.default_storage('v1', container_name="data")
+
+    def test_auth_v2(self):
+        """Test version 2 authentication"""
+        self.default_storage('v2', container_name="data")
+
+    def test_auth_v3(self):
+        """Test version 3 authentication"""
+        self.default_storage('v3', container_name="data")
+
+    def test_auth_v1_detect_version(self):
+        """Test version 1 authentication detection"""
+        backend = self.default_storage('v1', container_name="data")
+        self.assertEqual(backend.auth_version, '1')
+
+    def test_auth_v2_detect_version(self):
+        """Test version 2 authentication detection"""
+        backend = self.default_storage('v2', container_name="data")
+        self.assertEqual(backend.auth_version, '2')
+
+    def test_auth_v3_detect_version(self):
+        """Test version 3 authentication detection"""
+        backend = self.default_storage('v3', container_name="data")
+        self.assertEqual(backend.auth_version, '3')
+
+
+@patch('swift.storage.swiftclient', new=FakeSwift)
+class MandatoryParamsTest(SwiftStorageTestCase):
 
     def test_instantiate_default(self):
         """Instantiate default backend with no parameters"""
@@ -56,33 +87,6 @@ class AuthTest(SwiftStorageTestCase):
         with self.assertRaises(ImproperlyConfigured):
             self.default_storage('v3', exclude=['api_key'], container_name="data")
 
-    def test_auth_v1(self):
-        """Test version 1 authentication"""
-        self.default_storage('v1', container_name="data")
-
-    def test_auth_v2(self):
-        """Test version 2 authentication"""
-        self.default_storage('v2', container_name="data")
-
-    def test_auth_v3(self):
-        """Test version 3 authentication"""
-        self.default_storage('v3', container_name="data")
-
-    def test_auth_v1_detect_version(self):
-        """Test version 1 authentication detection"""
-        backend = self.default_storage('v1', container_name="data")
-        self.assertEqual(backend.auth_version, '1')
-
-    def test_auth_v2_detect_version(self):
-        """Test version 2 authentication detection"""
-        backend = self.default_storage('v2', container_name="data")
-        self.assertEqual(backend.auth_version, '2')
-
-    def test_auth_v3_detect_version(self):
-        """Test version 3 authentication detection"""
-        backend = self.default_storage('v3', container_name="data")
-        self.assertEqual(backend.auth_version, '3')
-
 
 @patch('swift.storage.swiftclient', new=FakeSwift)
 class ConfigTest(SwiftStorageTestCase):
@@ -102,18 +106,17 @@ class ConfigTest(SwiftStorageTestCase):
                                        override_base_url=url)
         self.assertEqual(backend.base_url, url)
 
-    # NOTE: How is this supposed to work?
-    # Should we be able to use base_url override with auto_base_url?
-    # This is currently possible in the code
-    # ---
-    # def test_override_base_url_auto(self):
-    #     """Test overriding base url with auto"""
-    #     url = 'http://localhost:8080/test/'
-    #     backend = self.default_storage('v3',
-    #                                    container_name="data",
-    #                                    auto_base_url=True,
-    #                                    override_base_url=url)
-    #     self.assertEqual(backend.base_url, url)
+    def test_override_base_url_auto(self):
+        """Test overriding base url with auto"""
+        url = 'http://localhost:8080'
+        container = "data"
+        backend = self.default_storage('v3',
+                                       container_name=container,
+                                       auto_base_url=True,
+                                       override_base_url=url)
+        self.assertTrue(backend.base_url.startswith(url))
+        self.assertEqual(len(backend.base_url),
+                         len(url) + len(container) + len(TENANT_ID) + len('/v1/AUTH_//'))
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)
