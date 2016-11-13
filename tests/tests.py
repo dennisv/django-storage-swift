@@ -161,7 +161,20 @@ class BackendTest(SwiftStorageTestCase):
         self.assertEqual(files.count(name), 1)
 
     def test_open(self):
+        """Attempt to open a object"""
         file = self.backend._open('root.txt')
         self.assertEqual(file.name, 'root.txt')
         data = file.read()
         self.assertEqual(len(data), 4096)
+
+    def test_get_available_name_nonexist(self):
+        """Available name for non-existent object"""
+        object = 'images/doesnotexist.png'
+        name = self.backend.get_available_name(object)
+        self.assertEqual(name, object)
+
+    def test_get_available_name_exist(self):
+        """Available name for non-existent object"""
+        object = 'images/test.png'
+        name = self.backend.get_available_name(object)
+        self.assertNotEqual(name, object)

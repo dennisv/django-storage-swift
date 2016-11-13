@@ -305,6 +305,7 @@ class SwiftStorage(Storage):
         if not self.auto_overwrite:
             name = super(SwiftStorage, self).get_available_name(
                 name, max_length)
+            print(name)
 
         if self.name_prefix:
             # Split out the name prefix so we can just return the bit of
