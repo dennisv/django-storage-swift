@@ -1,3 +1,10 @@
+.. image:: https://img.shields.io/pypi/v/django-storage-swift.svg
+    :target: https://pypi.python.org/pypi/django-storage-swift
+
+.. image:: https://travis-ci.org/blacktorn/django-storage-swift.svg?branch=master
+    :target: https://travis-ci.org/blacktorn/django-storage-swift
+
+
 django-storage-swift: a storage layer for OpenStack Swift
 =========================================================
 
