@@ -10,31 +10,41 @@ AUTH_PARAMETERS = {
         'api_auth_url': 'https://objects.example.com',
         'api_username': 'user',
         'api_key': 'auth_key',
+        'auth_version': '1',
+        'container_name': "container",
     },
     'v2': {
         'api_auth_url': 'https://objects.example.com',
         'api_username': 'user',
         'api_key': 'auth_key',
-        'tenant_name': 'tenant'
-    },
+        'tenant_name': 'tenant',
+        'tenant_id': 'tenant',
+        'auth_version': '2',
+        'container_name': "container"
+},
     'v3': {
         'api_auth_url': 'https://objects.example.com',
         'api_username': 'user',
         'api_key': 'auth_key',
+        'auth_version': '3',
         'user_domain_name': 'domain',
+        'user_domain_id': 'domain',
         'project_domain_name': 'domain',
+        'project_domain_id': 'domain',
         'tenant_name': 'project',
+        'container_name': "container"
     }
 }
 
 
 def auth_params(version, exclude=None, **kwargs):
     """Appends auth parameters"""
-    kwargs.update(AUTH_PARAMETERS[version])
+    params = deepcopy(AUTH_PARAMETERS[version])
+    params.update(kwargs)
     if exclude:
         for name in exclude:
-            del kwargs[name]
-    return kwargs
+            del params[name]
+    return params
 
 
 def create_object(path, content_type='image/png', bytes=4096,
@@ -73,6 +83,7 @@ class ClientException(Exception):
 class FakeSwift(object):
     ClientException = ClientException
     objects = CONTAINER_CONTENTS
+    containers = ['container']
 
     @classmethod
     def get_auth(cls, auth_url, user, passwd, **kwargs):
@@ -83,7 +94,13 @@ class FakeSwift(object):
         return FakeHttpConn()
 
     @classmethod
-    def head_container(cls, *args, **kwargs):
+    def head_container(cls, url, token, container, **kwargs):
+        print("container", container)
+        if container not in FakeSwift.containers:
+            raise ClientException
+
+    @classmethod
+    def put_container(cls, url, token, container, **kwargs):
         pass
 
     @classmethod
@@ -92,6 +109,7 @@ class FakeSwift(object):
             if obj['name'] == name:
                 object = deepcopy(obj)
                 object['content-length'] = obj['bytes']
+                object['x-timestamp'] = '123456789'
                 return object
         raise FakeSwift.ClientException
 

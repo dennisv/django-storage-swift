@@ -23,30 +23,45 @@ class AuthTest(SwiftStorageTestCase):
 
     def test_auth_v1(self):
         """Test version 1 authentication"""
-        self.default_storage('v1', container_name="data")
+        self.default_storage('v1')
 
     def test_auth_v2(self):
         """Test version 2 authentication"""
-        self.default_storage('v2', container_name="data")
+        self.default_storage('v2')
 
     def test_auth_v3(self):
         """Test version 3 authentication"""
-        self.default_storage('v3', container_name="data")
+        self.default_storage('v3')
 
     def test_auth_v1_detect_version(self):
         """Test version 1 authentication detection"""
-        backend = self.default_storage('v1', container_name="data")
+        backend = self.default_storage('v1', exclude=['auth_version'])
         self.assertEqual(backend.auth_version, '1')
 
     def test_auth_v2_detect_version(self):
         """Test version 2 authentication detection"""
-        backend = self.default_storage('v2', container_name="data")
+        backend = self.default_storage('v2', exclude=['auth_version'])
         self.assertEqual(backend.auth_version, '2')
 
     def test_auth_v3_detect_version(self):
         """Test version 3 authentication detection"""
-        backend = self.default_storage('v3', container_name="data")
+        backend = self.default_storage('v3', exclude=['auth_version'])
         self.assertEqual(backend.auth_version, '3')
+
+    def test_auth_v2_no_tenant(self):
+        """Missing tenant in v2 auth"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v2', exclude=['tenant_name', 'tenant_id'])
+
+    def test_auth_v3_no_user_domain(self):
+        """Missing user_domain in v3 auth"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v3', exclude=['user_domain_name', 'user_domain_id'])
+
+    def test_auth_v3_no_project_domain(self):
+        """Missing project_domain in v3 auth"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v3', exclude=['project_domain_name', 'project_domain_id'])
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)
@@ -65,27 +80,27 @@ class MandatoryParamsTest(SwiftStorageTestCase):
     def test_mandatory_auth_url(self):
         """Test ImproperlyConfigured if api_auth_url is missing"""
         with self.assertRaises(ImproperlyConfigured):
-            self.default_storage('v3', exclude=['api_auth_url'], container_name="data")
+            self.default_storage('v3', exclude=['api_auth_url'])
 
     def test_mandatory_username(self):
         """Test ImproperlyConfigured if api_auth_url is missing"""
         with self.assertRaises(ImproperlyConfigured):
-            self.default_storage('v3', exclude=['api_username'], container_name="data")
+            self.default_storage('v3', exclude=['api_username'])
 
     def test_mandatory_container_name(self):
         """Test ImproperlyConfigured if container_name is missing"""
         with self.assertRaises(ImproperlyConfigured):
-            self.default_storage('v3')
+            self.default_storage('v3', exclude=['container_name'])
 
     def test_mandatory_static_container_name(self):
         """Test ImproperlyConfigured if container_name is missing"""
         with self.assertRaises(ImproperlyConfigured):
-            self.static_storage('v3')
+            self.static_storage('v3', exclude=['container_name'])
 
     def test_mandatory_password(self):
         """Test ImproperlyConfigured if api_key is missing"""
         with self.assertRaises(ImproperlyConfigured):
-            self.default_storage('v3', exclude=['api_key'], container_name="data")
+            self.default_storage('v3', exclude=['api_key'])
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)
@@ -93,15 +108,13 @@ class ConfigTest(SwiftStorageTestCase):
 
     def test_auto_base_url(self):
         """Automatically resolve base url"""
-        container_name = "data"
-        backend = self.default_storage('v3', container_name=container_name, auto_base_url=True)
-        self.assertEqual(backend.base_url, base_url(container=container_name))
+        backend = self.default_storage('v3', auto_base_url=True)
+        self.assertEqual(backend.base_url, base_url(container="container"))
 
     def test_override_base_url_no_auto(self):
         """Test overriding base url without auto base url"""
         url = 'http://localhost:8080/test/'
         backend = self.default_storage('v3',
-                                       container_name="data",
                                        auto_base_url=False,
                                        override_base_url=url)
         self.assertEqual(backend.base_url, url)
@@ -109,14 +122,39 @@ class ConfigTest(SwiftStorageTestCase):
     def test_override_base_url_auto(self):
         """Test overriding base url with auto"""
         url = 'http://localhost:8080'
-        container = "data"
         backend = self.default_storage('v3',
-                                       container_name=container,
                                        auto_base_url=True,
                                        override_base_url=url)
         self.assertTrue(backend.base_url.startswith(url))
-        storage_url = '{}/v1/AUTH_{}/{}/'.format(url, TENANT_ID, container)
+        storage_url = '{}/v1/AUTH_{}/{}/'.format(url, TENANT_ID, "container")
         self.assertEqual(backend.base_url, storage_url)
+
+
+@patch('swift.storage.swiftclient', new=FakeSwift)
+class TokenTest(SwiftStorageTestCase):
+
+    def test_get_token(self):
+        """Renewing token"""
+        backend = self.default_storage('v3', auth_token_duration=0)
+        backend.get_token()
+
+    def test_set_token(self):
+        """Set token manually"""
+        backend = self.default_storage('v3', auth_token_duration=0)
+        backend.set_token('token')
+
+
+@patch('swift.storage.swiftclient', new=FakeSwift)
+class CreateContainerTest(SwiftStorageTestCase):
+
+    def test_auto_create_container(self):
+        """Auth create container"""
+        self.default_storage(
+            'v3',
+            auto_create_container=True,
+            auto_create_container_public=True,
+            auto_create_container_allow_orgin=True,
+            container_name='new')
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)
@@ -124,7 +162,7 @@ class BackendTest(SwiftStorageTestCase):
 
     @patch('swift.storage.swiftclient', new=FakeSwift)
     def setUp(self):
-        self.backend = self.default_storage('v3', container_name="data")
+        self.backend = self.default_storage('v3')
 
     def test_url(self):
         """Get url for a resource"""
@@ -136,6 +174,10 @@ class BackendTest(SwiftStorageTestCase):
         """Test getting object size"""
         size = self.backend.size('images/test.png')
         self.assertEqual(size, 4096)
+
+    def test_modified_time(self):
+        """Test getting modified time of an object"""
+        self.backend.modified_time('images/test.png')
 
     def test_object_exists(self):
         """Test for the existence of an object"""
@@ -156,7 +198,7 @@ class BackendTest(SwiftStorageTestCase):
     @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
     def test_rmtree(self):
         """Remove folder in storage"""
-        backend = self.default_storage('v3', container_name="data")
+        backend = self.default_storage('v3')
         backend.rmtree('images')
         dirs, files = self.backend.listdir('')
         self.assertListEqual(dirs, ['css', 'js'])
@@ -165,7 +207,7 @@ class BackendTest(SwiftStorageTestCase):
     @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
     def test_mkdirs(self):
         """Make directory/pseudofolder in backend"""
-        backend = self.default_storage('v3', container_name="data")
+        backend = self.default_storage('v3')
         backend.makedirs('downloads')
         dirs, files = self.backend.listdir('')
         self.assertListEqual(dirs, ['images', 'css', 'js', 'downloads'])
@@ -174,7 +216,7 @@ class BackendTest(SwiftStorageTestCase):
     @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
     def test_delete_object(self):
         """Delete an object"""
-        backend = self.default_storage('v3', container_name="data")
+        backend = self.default_storage('v3')
         backend.delete('root.txt')
         dirs, files = self.backend.listdir('')
         self.assertListEqual(dirs, ['images', 'css', 'js'])
@@ -183,7 +225,7 @@ class BackendTest(SwiftStorageTestCase):
     @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
     def test_save(self):
         """Save an object"""
-        backend = self.default_storage('v3', container_name="data")
+        backend = self.default_storage('v3')
         name = backend._save("test.txt", "test")
         dirs, files = self.backend.listdir('')
         self.assertEqual(files.count(name), 1)
@@ -202,7 +244,7 @@ class BackendTest(SwiftStorageTestCase):
         self.assertEqual(name, object)
 
     def test_get_available_name_exist(self):
-        """Available name for non-existent object"""
+        """Available name for existing object"""
         object = 'images/test.png'
         name = self.backend.get_available_name(object)
         self.assertNotEqual(name, object)
