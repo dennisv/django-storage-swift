@@ -8,13 +8,13 @@ from swift import storage
 
 class SwiftStorageTestCase(TestCase):
 
-    def default_storage(self, auth_version, exclude=None, **params):
+    def default_storage(self, auth_config, exclude=None, **params):
         """Instantiate default storage with auth parameters"""
-        return storage.SwiftStorage(**auth_params(auth_version, exclude=exclude, **params))
+        return storage.SwiftStorage(**auth_params(auth_config, exclude=exclude, **params))
 
-    def static_storage(self, auth_version, exclude=None, **params):
+    def static_storage(self, auth_config, exclude=None, **params):
         """Instantiate static storage with auth parameters"""
-        return storage.StaticSwiftStorage(**auth_params(auth_version, exclude=exclude, **params))
+        return storage.StaticSwiftStorage(**auth_params(auth_config, exclude=exclude, **params))
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)
@@ -62,6 +62,11 @@ class AuthTest(SwiftStorageTestCase):
         """Missing project_domain in v3 auth"""
         with self.assertRaises(ImproperlyConfigured):
             self.default_storage('v3', exclude=['project_domain_name', 'project_domain_id'])
+
+    def test_auth_v3_int_auth_version(self):
+        """Auth version converts into a string"""
+        backend = self.default_storage('v3', auth_version=3)
+        self.assertEqual(backend.auth_version, '3')
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)

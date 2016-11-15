@@ -31,7 +31,6 @@ def validate_settings(backend):
     if not backend.api_auth_url:
         raise ImproperlyConfigured("The SWIFT_AUTH_URL setting is required")
 
-    # Mandatory auth params
     if not backend.api_username:
         raise ImproperlyConfigured("The SWIFT_USERNAME setting is required")
 
@@ -56,6 +55,9 @@ def validate_settings(backend):
             else:
                 # Set version 1 if no tenant is not defined
                 backend.auth_version = '1'
+
+    # Enforce auth_version into a string (more future proof)
+    backend.auth_version = str(backend.auth_version)
 
     # Validate v2 auth parameters
     if backend.auth_version == '2':
