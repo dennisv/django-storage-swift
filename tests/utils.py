@@ -21,7 +21,7 @@ AUTH_PARAMETERS = {
         'tenant_id': 'tenant',
         'auth_version': '2',
         'container_name': "container"
-},
+    },
     'v3': {
         'api_auth_url': 'https://objects.example.com',
         'api_username': 'user',
@@ -37,13 +37,13 @@ AUTH_PARAMETERS = {
 }
 
 
-def auth_params(version, exclude=None, **kwargs):
+def auth_params(auth_config, exclude=None, **kwargs):
     """Appends auth parameters"""
-    params = deepcopy(AUTH_PARAMETERS[version])
-    params.update(kwargs)
+    params = deepcopy(AUTH_PARAMETERS[auth_config])
     if exclude:
         for name in exclude:
             del params[name]
+    params.update(kwargs)
     return params
 
 
@@ -95,7 +95,6 @@ class FakeSwift(object):
 
     @classmethod
     def head_container(cls, url, token, container, **kwargs):
-        print("container", container)
         if container not in FakeSwift.containers:
             raise ClientException
 
