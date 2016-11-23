@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='django-storage-swift',
-    version='1.2.13',
+    version='1.2.14',
     description='OpenStack Swift storage backend for Django',
     long_description=open('README.rst').read(),
     url='http://github.com/blacktorn/django-storage-swift',
