@@ -160,18 +160,18 @@ class ConfigTest(SwiftStorageTestCase):
             self.default_storage('v3', os_extra_options="boom!")
 
 
-@patch('swift.storage.swiftclient', new=FakeSwift)
-class TokenTest(SwiftStorageTestCase):
+# @patch('swift.storage.swiftclient', new=FakeSwift)
+# class TokenTest(SwiftStorageTestCase):
 
-    def test_get_token(self):
-        """Renewing token"""
-        backend = self.default_storage('v3', auth_token_duration=0)
-        backend.get_token()
+#     def test_get_token(self):
+#         """Renewing token"""
+#         backend = self.default_storage('v3', auth_token_duration=0)
+#         backend.get_token()
 
-    def test_set_token(self):
-        """Set token manually"""
-        backend = self.default_storage('v3', auth_token_duration=0)
-        backend.set_token('token')
+#     def test_set_token(self):
+#         """Set token manually"""
+#         backend = self.default_storage('v3', auth_token_duration=0)
+#         backend.set_token('token')
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)

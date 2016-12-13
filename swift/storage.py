@@ -145,6 +145,7 @@ class SwiftStorage(Storage):
     _token = ''
     name_prefix = setting('SWIFT_NAME_PREFIX', '')
     full_listing = setting('SWIFT_FULL_LISTING', True)
+    max_retries = setting('SWIFT_MAX_RETRIES', 5)
 
     def __init__(self, **settings):
         # check if some of the settings provided as class attributes
@@ -169,21 +170,19 @@ class SwiftStorage(Storage):
         }
         self.os_options.update(self.os_extra_options)
 
-        # Get authentication token
-        self.storage_url, self.token = swiftclient.get_auth(
-            self.api_auth_url,
-            self.api_username,
-            self.api_key,
-            auth_version=self.auth_version,
-            os_options=self.os_options)
-        self.http_conn = swiftclient.http_connection(self.storage_url)
+        # Get Connection wrapper
+        self.swift_conn = swiftclient.Connection(
+            authurl=self.api_auth_url,
+            user=self.api_username,
+            key=self.api_key,
+            retries=self.max_retries,
+            tenant_name=self.tenant_name,
+            os_options=self.os_options,
+            auth_version=self.auth_version)
 
         # Check container
         try:
-            swiftclient.head_container(self.storage_url,
-                                       self.token,
-                                       self.container_name,
-                                       http_conn=self.http_conn)
+            self.swift_conn.head_container(self.container_name)
         except swiftclient.ClientException:
             headers = {}
             if self.auto_create_container:
@@ -192,11 +191,8 @@ class SwiftStorage(Storage):
                 if self.auto_create_container_allow_orgin:
                     headers['X-Container-Meta-Access-Control-Allow-Origin'] = \
                         self.auto_create_container_allow_orgin
-                swiftclient.put_container(self.storage_url,
-                                          self.token,
-                                          self.container_name,
-                                          http_conn=self.http_conn,
-                                          headers=headers)
+                self.swift_conn.put_container(self.container_name,
+                                              headers=headers)
             else:
                 raise ImproperlyConfigured(
                     "Container %s does not exist." % self.container_name)
@@ -205,7 +201,7 @@ class SwiftStorage(Storage):
             # Derive a base URL based on the authentication information from
             # the server, optionally overriding the protocol, host/port and
             # potentially adding a path fragment before the auth information.
-            self.base_url = self.storage_url + '/'
+            self.base_url = self.swift_conn.url + '/'
             if self.override_base_url is not None:
                 # override the protocol and host, append any path fragments
                 split_derived = urlparse.urlsplit(self.base_url)
@@ -222,32 +218,11 @@ class SwiftStorage(Storage):
         else:
             self.base_url = self.override_base_url
 
-    def get_token(self):
-        if time() - self._token_creation_time >= self.auth_token_duration:
-            new_token = swiftclient.get_auth(
-                self.api_auth_url,
-                self.api_username,
-                self.api_key,
-                auth_version=self.auth_version,
-                os_options=self.os_options)[1]
-            self.token = new_token
-        return self._token
-
-    def set_token(self, new_token):
-        self._token_creation_time = time()
-        self._token = new_token
-
-    token = property(get_token, set_token)
-
     def _open(self, name, mode='rb'):
         original_name = name
         name = self.name_prefix + name
 
-        headers, content = swiftclient.get_object(self.storage_url,
-                                                  self.token,
-                                                  self.container_name,
-                                                  name,
-                                                  http_conn=self.http_conn)
+        headers, content = self.swift_conn.get_object(self.container_name, name)
         buf = BytesIO(content)
         buf.name = os.path.basename(original_name)
         buf.mode = mode
@@ -264,15 +239,12 @@ class SwiftStorage(Storage):
         else:
             content_type = mimetypes.guess_type(name)[0]
         content_length = content.size
-        swiftclient.put_object(self.storage_url,
-                               self.token,
-                               self.container_name,
-                               name,
-                               content,
-                               http_conn=self.http_conn,
-                               content_type=content_type,
-                               content_length=content_length,
-                               headers=headers)
+        self.swift_conn.put_object(self.container_name,
+                                   name,
+                                   content,
+                                   content_length=content_length,
+                                   content_type=content_type,
+                                   headers=headers)
         return original_name
 
     def get_headers(self, name):
@@ -285,12 +257,8 @@ class SwiftStorage(Storage):
         """
         if name != self.last_headers_name:
             # miss -> update
-            self.last_headers_value = swiftclient.head_object(
-                self.storage_url,
-                self.token,
-                self.container_name,
-                name,
-                http_conn=self.http_conn)
+            self.last_headers_value = self.swift_conn.head_object(
+                self.container_name, name)
             self.last_headers_name = name
         return self.last_headers_value
 
@@ -305,11 +273,7 @@ class SwiftStorage(Storage):
     @prepend_name_prefix
     def delete(self, name):
         try:
-            swiftclient.delete_object(self.storage_url,
-                                      self.token,
-                                      self.container_name,
-                                      name,
-                                      http_conn=self.http_conn)
+            self.swift_conn.delete_object(self.container_name, name)
         except swiftclient.ClientException:
             pass
 
@@ -377,9 +341,8 @@ class SwiftStorage(Storage):
 
     @prepend_name_prefix
     def listdir(self, path):
-        container = swiftclient.get_container(self.storage_url, self.token,
-                                              self.container_name, prefix=path,
-                                              full_listing=self.full_listing)
+        container = self.swift_conn.get_container(
+            self.container_name, prefix=path, full_listing=self.full_listing)
         files = []
         dirs = []
         for obj in container[1]:
@@ -395,23 +358,18 @@ class SwiftStorage(Storage):
 
     @prepend_name_prefix
     def makedirs(self, dirs):
-        swiftclient.put_object(self.storage_url,
-                               token=self.token,
-                               container=self.container_name,
-                               name='%s/.' % (self.name_prefix + dirs),
-                               contents='')
+        self.swift_conn.put_object(self.container_name,
+                                   '%s/.' % (self.name_prefix + dirs),
+                                   contents='')
 
     @prepend_name_prefix
     def rmtree(self, abs_path):
-        container = swiftclient.get_container(self.storage_url, self.token,
-                                              self.container_name)
+        container = self.swift_conn.get_container(self.container_name)
 
         for obj in container[1]:
             if obj['name'].startswith(abs_path):
-                swiftclient.delete_object(self.storage_url,
-                                          token=self.token,
-                                          container=self.container_name,
-                                          name=obj['name'])
+                self.swift_conn.delete_object(self.container_name,
+                                              obj['name'])
 
 
 class StaticSwiftStorage(SwiftStorage):
