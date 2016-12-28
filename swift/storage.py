@@ -12,9 +12,14 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
 from django.core.files.storage import Storage
-from django.utils.deconstruct import deconstructible
 from six import b
 from six.moves.urllib import parse as urlparse
+
+try:
+    from django.utils.deconstruct import deconstructible
+except ImportError:
+    def deconstructible(arg):
+        return arg
 
 try:
     import swiftclient
