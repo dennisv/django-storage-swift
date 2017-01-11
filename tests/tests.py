@@ -1,9 +1,11 @@
+# -*- coding: UTF-8 -*-
 from copy import deepcopy
 from django.test import TestCase
 from django.core.exceptions import ImproperlyConfigured
 from mock import patch
 from .utils import FakeSwift, auth_params, base_url, CONTAINER_CONTENTS, TENANT_ID
 from swift import storage
+from six.moves.urllib import parse as urlparse
 
 
 class SwiftStorageTestCase(TestCase):
@@ -253,3 +255,45 @@ class BackendTest(SwiftStorageTestCase):
         object = 'images/test.png'
         name = self.backend.get_available_name(object)
         self.assertNotEqual(name, object)
+
+
+@patch('swift.storage.swiftclient', new=FakeSwift)
+class TemporaryUrlTest(SwiftStorageTestCase):
+
+    def assert_valid_temp_url(self, name):
+        url = self.backend.url(name)
+        split_url = urlparse.urlsplit(url)
+        query_params = urlparse.parse_qs(split_url[3])
+        split_base_url = urlparse.urlsplit(base_url(container=self.backend.container_name, path=name))
+
+        # ensure scheme, netloc, and path are same as to non-temporary URL
+        self.assertEqual(split_base_url[0:2], split_url[0:2])
+
+        # ensure query string contains signature and expiry
+        self.assertIn('temp_url_sig', query_params)
+        self.assertIn('temp_url_expires', query_params)
+
+    def test_temp_url_key_required(self):
+        """Must set temp_url_key when use_temp_urls=True"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.backend = self.default_storage('v3', use_temp_urls=True)
+
+    def test_temp_url_key(self):
+        """Get temporary url using string key"""
+        self.backend = self.default_storage('v3', use_temp_urls=True, temp_url_key='Key')
+        self.assert_valid_temp_url('images/test.png')
+
+    def test_temp_url_key_unicode(self):
+        """temp_url_key must be ascii"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.backend = self.default_storage('v3', use_temp_urls=True, temp_url_key=u'aあä')
+
+    def test_temp_url_key_unicode_latin(self):
+        """Get temporary url using a unicode key which can be ascii-encoded"""
+        self.backend = self.default_storage('v3', use_temp_urls=True, temp_url_key=u'Key')
+        self.assert_valid_temp_url('images/test.png')
+
+    def test_temp_url_unicode_name(self):
+        """temp_url file name can be unicode."""
+        self.backend = self.default_storage('v3', use_temp_urls=True, temp_url_key=u'Key')
+        self.assert_valid_temp_url('images/aあä.png')

@@ -12,7 +12,6 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
 from django.core.files.storage import Storage
-from six import b
 from six.moves.urllib import parse as urlparse
 
 try:
@@ -83,6 +82,18 @@ def validate_settings(backend):
         if not (backend.tenant_name or backend.tenant_id):
             raise ImproperlyConfigured("SWIFT_PROJECT_ID or SWIFT_PROJECT_NAME must \
              be defined when using version 3 auth")
+
+    # Validate temp_url parameters
+    if backend.use_temp_urls:
+        if backend.temp_url_key is None:
+            raise ImproperlyConfigured("SWIFT_TEMP_URL_KEY must be set when \
+             SWIFT_USE_TEMP_URL is True")
+
+        # Encode temp_url_key as bytes
+        try:
+            backend.temp_url_key = backend.temp_url_key.encode('ascii')
+        except UnicodeEncodeError:
+            raise ImproperlyConfigured("SWIFT_TEMP_URL_KEY must ascii")
 
     # Misc sanity checks
     if not isinstance(backend.os_extra_options, dict):
@@ -343,9 +354,8 @@ class SwiftStorage(Storage):
             expires = int(time() + int(self.temp_url_duration))
             method = 'GET'
             path = urlparse.urlsplit(url).path
-            sig = hmac.new(b(self.temp_url_key), b('%s\n%s\n%s' %
-                                                   (method, expires, path)),
-                           sha1).hexdigest()
+            msg = ('%s\n%s\n%s' % (method, expires, path)).encode()
+            sig = hmac.new(self.temp_url_key, msg, sha1).hexdigest()
             url = url + '?temp_url_sig=%s&temp_url_expires=%s' % (sig, expires)
 
         return url
