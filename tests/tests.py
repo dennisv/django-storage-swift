@@ -233,7 +233,8 @@ class BackendTest(SwiftStorageTestCase):
     def test_save(self):
         """Save an object"""
         backend = self.default_storage('v3')
-        name = backend._save("test.txt", "test")
+        content = open("test")
+        name = backend._save("test.txt", content)
         dirs, files = self.backend.listdir('')
         self.assertEqual(files.count(name), 1)
 
