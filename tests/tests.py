@@ -6,7 +6,7 @@ from mock import patch
 from .utils import FakeSwift, auth_params, base_url, CONTAINER_CONTENTS, TENANT_ID
 from swift import storage
 from six.moves.urllib import parse as urlparse
-
+import tempfile
 
 class SwiftStorageTestCase(TestCase):
 
@@ -233,7 +233,7 @@ class BackendTest(SwiftStorageTestCase):
     def test_save(self):
         """Save an object"""
         backend = self.default_storage('v3')
-        content = open("test")
+        content = tempfile.mkstemp()
         name = backend._save("test.txt", content)
         dirs, files = self.backend.listdir('')
         self.assertEqual(files.count(name), 1)
