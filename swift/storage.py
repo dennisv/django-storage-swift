@@ -262,7 +262,7 @@ class SwiftStorage(Storage):
             content.seek(0)
         else:
             content_type = mimetypes.guess_type(name)[0]
-        content_length = os.fstat(content.fileno()).st_size
+        content_length = content.size
         swiftclient.put_object(self.storage_url,
                                self.token,
                                self.container_name,
