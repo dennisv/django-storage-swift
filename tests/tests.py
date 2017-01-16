@@ -2,11 +2,11 @@
 from copy import deepcopy
 from django.test import TestCase
 from django.core.exceptions import ImproperlyConfigured
+from django.core.files.base import ContentFile
 from mock import patch
 from .utils import FakeSwift, auth_params, base_url, CONTAINER_CONTENTS, TENANT_ID
 from swift import storage
 from six.moves.urllib import parse as urlparse
-
 
 class SwiftStorageTestCase(TestCase):
 
@@ -233,7 +233,8 @@ class BackendTest(SwiftStorageTestCase):
     def test_save(self):
         """Save an object"""
         backend = self.default_storage('v3')
-        name = backend._save("test.txt", "test")
+        content_file = ContentFile("Hello world!")
+        name = backend._save("test.txt", content_file)
         dirs, files = self.backend.listdir('')
         self.assertEqual(files.count(name), 1)
 

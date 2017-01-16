@@ -262,6 +262,7 @@ class SwiftStorage(Storage):
             content.seek(0)
         else:
             content_type = mimetypes.guess_type(name)[0]
+        content_length = content.size
         swiftclient.put_object(self.storage_url,
                                self.token,
                                self.container_name,
@@ -269,6 +270,7 @@ class SwiftStorage(Storage):
                                content,
                                http_conn=self.http_conn,
                                content_type=content_type,
+                               content_length=content_length,
                                headers=headers)
         return original_name
 
