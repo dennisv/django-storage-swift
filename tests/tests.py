@@ -276,7 +276,7 @@ class BackendTest(SwiftStorageTestCase):
 
     def test_get_available_name_prefix(self):
         """Available name with prefix"""
-        object = 'prefix-test.png'
+        object = 'test.png'
         # This will add the prefix, then get_avail will remove it again
         backend = self.default_storage('v3', name_prefix="prefix-")
         name = backend.get_available_name(object)
