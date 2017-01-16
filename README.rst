@@ -4,6 +4,8 @@
 .. image:: https://travis-ci.org/blacktorn/django-storage-swift.svg?branch=master
     :target: https://travis-ci.org/blacktorn/django-storage-swift
 
+.. image:: https://coveralls.io/repos/blacktorn/django-storage-swift/badge.svg?branch=master
+    :target: https://coveralls.io/r/blacktorn/django-storage-swift
 
 django-storage-swift: a storage layer for OpenStack Swift
 =========================================================
