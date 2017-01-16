@@ -8,6 +8,7 @@ from .utils import FakeSwift, auth_params, base_url, CONTAINER_CONTENTS, TENANT_
 from swift import storage
 from six.moves.urllib import parse as urlparse
 
+
 class SwiftStorageTestCase(TestCase):
 
     def default_storage(self, auth_config, exclude=None, **params):
@@ -54,6 +55,11 @@ class AuthTest(SwiftStorageTestCase):
         """Missing tenant in v2 auth"""
         with self.assertRaises(ImproperlyConfigured):
             self.default_storage('v2', exclude=['tenant_name', 'tenant_id'])
+
+    def test_auth_v3_no_tenant(self):
+        """Missing tenant in v3 auth"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v3', exclude=['tenant_name'])
 
     def test_auth_v3_no_user_domain(self):
         """Missing user_domain in v3 auth"""
@@ -135,6 +141,11 @@ class ConfigTest(SwiftStorageTestCase):
         self.assertTrue(backend.base_url.startswith(url))
         storage_url = '{}/v1/AUTH_{}/{}/'.format(url, TENANT_ID, "container")
         self.assertEqual(backend.base_url, storage_url)
+
+    def test_illegal_extra_opts(self):
+        """extra_opts should always be a dict"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v3', os_extra_options="boom!")
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)
@@ -234,9 +245,15 @@ class BackendTest(SwiftStorageTestCase):
         """Save an object"""
         backend = self.default_storage('v3')
         content_file = ContentFile("Hello world!")
-        name = backend._save("test.txt", content_file)
+        name = backend.save("test.txt", content_file)
         dirs, files = self.backend.listdir('')
         self.assertEqual(files.count(name), 1)
+
+    @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
+    def test_content_type_from_fd(self):
+        """Test content_type detection on save"""
+        backend = self.default_storage('v3', content_type_from_fd=True)
+        backend.save("test.txt", ContentFile("Some random data"))
 
     def test_open(self):
         """Attempt to open a object"""
@@ -256,6 +273,30 @@ class BackendTest(SwiftStorageTestCase):
         object = 'images/test.png'
         name = self.backend.get_available_name(object)
         self.assertNotEqual(name, object)
+
+    def test_get_available_name_prefix(self):
+        """Available name with prefix"""
+        object = 'prefix-test.png'
+        # This will add the prefix, then get_avail will remove it again
+        backend = self.default_storage('v3', name_prefix="prefix-")
+        name = backend.get_available_name(object)
+        self.assertEqual(object, name)
+
+    def test_get_available_name_static(self):
+        """Static's get_available_name should be unmodified"""
+        static = self.static_storage('v3')
+        object = "test.txt"
+        name = static.get_available_name(object)
+        self.assertEqual(name, object)
+
+    def test_get_valid_name(self):
+        name = self.backend.get_valid_name("A @#!file.txt")
+        self.assertEquals(name, "A_file.txt")
+
+    def test_path(self):
+        """path is not implemented"""
+        with self.assertRaises(NotImplementedError):
+            self.backend.path("test.txt")
 
 
 @patch('swift.storage.swiftclient', new=FakeSwift)

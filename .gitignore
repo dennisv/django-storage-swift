@@ -4,6 +4,8 @@
 /*.egg-info
 /*.egg
 /.tox/
+/env/
+htmlcov
 .coverage
 
 .idea/
