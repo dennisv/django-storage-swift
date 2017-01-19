@@ -126,7 +126,7 @@ class SwiftStorage(Storage):
     user_domain_id = setting('SWIFT_USER_DOMAIN_ID')
     project_domain_name = setting('SWIFT_PROJECT_DOMAIN_NAME')
     project_domain_id = setting('SWIFT_PROJECT_DOMAIN_ID')
-    region_name = settings('SWIFT_REGION_NAME')
+    region_name = setting('SWIFT_REGION_NAME')
     container_name = setting('SWIFT_CONTAINER_NAME')
     auto_create_container = setting('SWIFT_AUTO_CREATE_CONTAINER', False)
     auto_create_container_public = setting(
