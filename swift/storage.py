@@ -22,6 +22,7 @@ except ImportError:
 
 try:
     import swiftclient
+    from swiftclient.utils import generate_temp_url
 except ImportError:
     raise ImproperlyConfigured("Could not load swiftclient library")
 
@@ -360,7 +361,8 @@ class SwiftStorage(Storage):
             path = urlparse.urlsplit(url).path
             msg = ('%s\n%s\n%s' % (method, expires, path)).encode()
             sig = hmac.new(self.temp_url_key, msg, sha1).hexdigest()
-            url = url + '?temp_url_sig=%s&temp_url_expires=%s' % (sig, expires)
+            tmp_path = generate_temp_url(path, expires, sig, method, absolute=True)
+            url = urlparse.urljoin(self.base_url, tmp_path)
 
         return url
 
