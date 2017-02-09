@@ -100,7 +100,8 @@ class FakeSwift(object):
 
     @classmethod
     def put_container(cls, url, token, container, **kwargs):
-        pass
+        if container not in cls.containers:
+            cls.containers.append(container)
 
     @classmethod
     def head_object(cls, url, token, container, name, **kwargs):
@@ -127,6 +128,7 @@ class FakeSwift(object):
             if obj['name'] == name:
                 FakeSwift.objects.remove(obj)
                 return
+        raise cls.ClientException
 
     @classmethod
     def put_object(cls, url, token, container, name=None, contents=None,

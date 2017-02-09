@@ -121,6 +121,16 @@ class MandatoryParamsTest(SwiftStorageTestCase):
 @patch('swift.storage.swiftclient', new=FakeSwift)
 class ConfigTest(SwiftStorageTestCase):
 
+    def test_missing_container(self):
+        """Raise if container don't exist"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v3', container_name='idontexist')
+
+    def test_delete_nonexisting_file(self):
+        """Deleting non-existing file is silently ignored"""
+        backend = self.default_storage('v3')
+        backend.delete("idontexist.something")
+
     def test_auto_base_url(self):
         """Automatically resolve base url"""
         backend = self.default_storage('v3', auto_base_url=True)
