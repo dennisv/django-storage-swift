@@ -355,7 +355,7 @@ class SwiftStorage(Storage):
         # Are we building a temporary url?
         if self.use_temp_urls:
             expires = int(time() + int(self.temp_url_duration))
-            path = urlparse.urlsplit(url).path
+            path = urlparse.unquote(urlparse.urlsplit(url).path, encoding="utf8")
             tmp_path = generate_temp_url(path, expires, self.temp_url_key, 'GET', absolute=True)
             url = urlparse.urljoin(self.base_url, tmp_path)
 

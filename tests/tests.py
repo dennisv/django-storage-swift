@@ -1,4 +1,5 @@
 # -*- coding: UTF-8 -*-
+import hmac
 from copy import deepcopy
 from django.test import TestCase
 from django.core.exceptions import ImproperlyConfigured
@@ -314,6 +315,17 @@ class TemporaryUrlTest(SwiftStorageTestCase):
         # ensure query string contains signature and expiry
         self.assertIn('temp_url_sig', query_params)
         self.assertIn('temp_url_expires', query_params)
+
+    def test_signature(self):
+        backend = self.default_storage('v3', use_temp_urls=True, temp_url_key='Key')
+        url = backend.url("container/test.txt")
+        url_parsed = urlparse.urlsplit(url)
+        print(url_parsed.path)
+        params = urlparse.parse_qs(url_parsed.query)
+        msg = "%s\n%s\n%s".format("GET", params['temp_url_sig'], url_parsed.path)
+        print(msg)
+        # hmac.new()
+        # hmac.compare_digest()
 
     def test_temp_url_key_required(self):
         """Must set temp_url_key when use_temp_urls=True"""
