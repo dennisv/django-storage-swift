@@ -327,15 +327,19 @@ class TemporaryUrlTest(SwiftStorageTestCase):
         self.assertIn('temp_url_sig', query_params)
         self.assertIn('temp_url_expires', query_params)
 
-    def test_signature(self):
+    def assert_valid_signature(self, path):
         """Validate temp-url signature"""
         backend = self.default_storage('v3', use_temp_urls=True, temp_url_key='Key')
-        url = backend.url("test/test.txt")
+        url = backend.url(path)
         url_parsed = urlparse.urlsplit(url)
         params = urlparse.parse_qs(url_parsed.query)
         msg = "{}\n{}\n{}".format("GET", params['temp_url_expires'][0], urlparse.unquote(url_parsed.path))
         sig = hmac.new(backend.temp_url_key, msg.encode('utf-8'), sha1).hexdigest()
         self.assertEqual(params['temp_url_sig'][0], sig)
+
+    def test_signature(self):
+        self.assert_valid_signature("test/test.txt")
+        self.assert_valid_signature("test/file with spaces.txt")
 
     def test_temp_url_key_required(self):
         """Must set temp_url_key when use_temp_urls=True"""
