@@ -1,8 +1,10 @@
 # -*- coding: UTF-8 -*-
+import hmac
 from copy import deepcopy
 from django.test import TestCase
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import ContentFile
+from hashlib import sha1
 from mock import patch
 from .utils import FakeSwift, auth_params, base_url, CONTAINER_CONTENTS, TENANT_ID
 from swift import storage
@@ -118,6 +120,16 @@ class MandatoryParamsTest(SwiftStorageTestCase):
 
 @patch('swift.storage.swiftclient', new=FakeSwift)
 class ConfigTest(SwiftStorageTestCase):
+
+    def test_missing_container(self):
+        """Raise if container don't exist"""
+        with self.assertRaises(ImproperlyConfigured):
+            self.default_storage('v3', container_name='idontexist')
+
+    def test_delete_nonexisting_file(self):
+        """Deleting non-existing file is silently ignored"""
+        backend = self.default_storage('v3')
+        backend.delete("idontexist.something")
 
     def test_auto_base_url(self):
         """Automatically resolve base url"""
@@ -314,6 +326,20 @@ class TemporaryUrlTest(SwiftStorageTestCase):
         # ensure query string contains signature and expiry
         self.assertIn('temp_url_sig', query_params)
         self.assertIn('temp_url_expires', query_params)
+
+    def assert_valid_signature(self, path):
+        """Validate temp-url signature"""
+        backend = self.default_storage('v3', use_temp_urls=True, temp_url_key='Key')
+        url = backend.url(path)
+        url_parsed = urlparse.urlsplit(url)
+        params = urlparse.parse_qs(url_parsed.query)
+        msg = "{}\n{}\n{}".format("GET", params['temp_url_expires'][0], urlparse.unquote(url_parsed.path))
+        sig = hmac.new(backend.temp_url_key, msg.encode('utf-8'), sha1).hexdigest()
+        self.assertEqual(params['temp_url_sig'][0], sig)
+
+    def test_signature(self):
+        self.assert_valid_signature("test/test.txt")
+        self.assert_valid_signature("test/file with spaces.txt")
 
     def test_temp_url_key_required(self):
         """Must set temp_url_key when use_temp_urls=True"""

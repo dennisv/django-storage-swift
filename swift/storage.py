@@ -1,10 +1,8 @@
-import hmac
 import mimetypes
 import os
 import re
 from datetime import datetime
 from functools import wraps
-from hashlib import sha1
 from io import BytesIO
 from time import time
 import magic
@@ -22,6 +20,7 @@ except ImportError:
 
 try:
     import swiftclient
+    from swiftclient.utils import generate_temp_url
 except ImportError:
     raise ImproperlyConfigured("Could not load swiftclient library")
 
@@ -356,11 +355,9 @@ class SwiftStorage(Storage):
         # Are we building a temporary url?
         if self.use_temp_urls:
             expires = int(time() + int(self.temp_url_duration))
-            method = 'GET'
-            path = urlparse.urlsplit(url).path
-            msg = ('%s\n%s\n%s' % (method, expires, path)).encode()
-            sig = hmac.new(self.temp_url_key, msg, sha1).hexdigest()
-            url = url + '?temp_url_sig=%s&temp_url_expires=%s' % (sig, expires)
+            path = urlparse.unquote(urlparse.urlsplit(url).path)
+            tmp_path = generate_temp_url(path, expires, self.temp_url_key, 'GET', absolute=True)
+            url = urlparse.urljoin(self.base_url, tmp_path)
 
         return url
 
