@@ -350,6 +350,10 @@ class SwiftStorage(Storage):
         return self._path(name)
 
     def _path(self, name):
+        try:
+            name = name.encode('utf-8')
+        except UnicodeDecodeError:
+            pass
         url = urlparse.urljoin(self.base_url, urlparse.quote(name))
 
         # Are we building a temporary url?
