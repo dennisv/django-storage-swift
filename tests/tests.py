@@ -281,16 +281,12 @@ class BackendTest(SwiftStorageTestCase):
         self.assertEqual(name, object)
 
     def test_get_available_name_max_length_nonexist(self):
-        """Available name for non-existent object"""
+        """Available name with max_length for non-existent object"""
         object = 'images/doesnotexist.png'
         name = self.backend.get_available_name(object, len(object))
         self.assertEqual(name, object)
-
-    def test_get_available_name_max_length_nonexist2(self):
-        """Available name for non-existent object"""
-        object = 'images/doesnotexist.png'
-        name = self.backend.get_available_name(object, 16)
-        self.assertRaises(SuspiciousFileOperation)
+        with self.assertRaises(SuspiciousFileOperation):
+            name = self.backend.get_available_name(object, 16)
 
     def test_get_available_name_exist(self):
         """Available name for existing object"""
@@ -299,7 +295,7 @@ class BackendTest(SwiftStorageTestCase):
         self.assertNotEqual(name, object)
 
     def test_get_available_name_max_length_exist(self):
-        """Available name for existing object"""
+        """Available name with max_length for existing object"""
         object = 'images/test.png'
         name = self.backend.get_available_name(object, 32)
         self.assertNotEqual(name, object)
