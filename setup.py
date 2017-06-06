@@ -5,7 +5,7 @@ setup(
     version='1.2.17',
     description='OpenStack Swift storage backend for Django',
     long_description=open('README.rst').read(),
-    url='http://github.com/blacktorn/django-storage-swift',
+    url='https://github.com/dennisv/django-storage-swift',
     author='Dennis Vermeulen',
     author_email='blacktorn@gmail.com',
     license='MIT',

@@ -23,8 +23,8 @@ matrix:
    - env: TOXENV=py35-master
      python: 3.5
 
-install: pip install tox coveralls
+install: pip install tox codecov
 
 script: tox
 
-after_success: coveralls
+after_success: codecov

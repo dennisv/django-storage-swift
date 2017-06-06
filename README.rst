@@ -1,11 +1,11 @@
 .. image:: https://img.shields.io/pypi/v/django-storage-swift.svg
     :target: https://pypi.python.org/pypi/django-storage-swift
 
-.. image:: https://travis-ci.org/blacktorn/django-storage-swift.svg?branch=master
-    :target: https://travis-ci.org/blacktorn/django-storage-swift
+.. image:: https://travis-ci.org/dennisv/django-storage-swift.svg?branch=master
+    :target: https://travis-ci.org/dennisv/django-storage-swift
 
-.. image:: https://coveralls.io/repos/blacktorn/django-storage-swift/badge.svg?branch=master
-    :target: https://coveralls.io/r/blacktorn/django-storage-swift
+.. image:: https://codecov.io/gh/dennisv/django-storage-swift/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/dennisv/django-storage-swift
 
 django-storage-swift: a storage layer for OpenStack Swift
 =========================================================
