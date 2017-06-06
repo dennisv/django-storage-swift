@@ -1,4 +1,5 @@
 from copy import deepcopy
+from six.moves.urllib import parse as urlparse
 
 BASE_URL = 'https://objects.example.com/v1'
 AUTH_URL = 'https://auth.example.com'
@@ -72,6 +73,10 @@ CONTAINER_CONTENTS = [create_object(path) for path in CONTAINER_FILES]
 
 def base_url(container=None, path=None):
     if container:
+        try:
+            path = urlparse.quote(path.encode('utf-8'))
+        except (UnicodeDecodeError, AttributeError):
+            pass
         return "{}/{}/{}".format(base_url(), container, path or '')
     return "{}/AUTH_{}".format(BASE_URL, TENANT_ID)
 

@@ -200,6 +200,12 @@ class BackendTest(SwiftStorageTestCase):
         url = self.backend.url(name)
         self.assertEqual(url, base_url(container=self.backend.container_name, path=name))
 
+    def test_url_unicode_name(self):
+        """Get url for a resource with unicode filename"""
+        name = u'images/test终端.png'
+        url = self.backend.url(name)
+        self.assertEqual(url, base_url(container=self.backend.container_name, path=name))
+
     def test_object_size(self):
         """Test getting object size"""
         size = self.backend.size('images/test.png')
