@@ -2,7 +2,7 @@
 import hmac
 from copy import deepcopy
 from django.test import TestCase
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, SuspiciousFileOperation
 from django.core.files.base import ContentFile
 from hashlib import sha1
 from mock import patch
@@ -280,10 +280,24 @@ class BackendTest(SwiftStorageTestCase):
         name = self.backend.get_available_name(object)
         self.assertEqual(name, object)
 
+    def test_get_available_name_max_length_nonexist(self):
+        """Available name with max_length for non-existent object"""
+        object = 'images/doesnotexist.png'
+        name = self.backend.get_available_name(object, len(object))
+        self.assertEqual(name, object)
+        with self.assertRaises(SuspiciousFileOperation):
+            name = self.backend.get_available_name(object, 16)
+
     def test_get_available_name_exist(self):
         """Available name for existing object"""
         object = 'images/test.png'
         name = self.backend.get_available_name(object)
+        self.assertNotEqual(name, object)
+
+    def test_get_available_name_max_length_exist(self):
+        """Available name with max_length for existing object"""
+        object = 'images/test.png'
+        name = self.backend.get_available_name(object, 32)
         self.assertNotEqual(name, object)
 
     def test_get_available_name_prefix(self):

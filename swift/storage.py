@@ -324,8 +324,11 @@ class SwiftStorage(Storage):
         available for new content to be written to.
         """
         if not self.auto_overwrite:
-            name = super(SwiftStorage, self).get_available_name(
-                name, max_length)
+            if max_length is None:
+                name = super(SwiftStorage, self).get_available_name(name)
+            else:
+                name = super(SwiftStorage, self).get_available_name(
+                    name, max_length)
 
         if self.name_prefix:
             # Split out the name prefix so we can just return the bit of
