@@ -11,7 +11,7 @@ setup(
     license='MIT',
     packages=['swift'],
     install_requires=[
-        'python-swiftclient>=1.4.0',
+        'python-swiftclient>=2.2.0',
         'python-keystoneclient>=0.2.3',
         'six',
         'python-magic>=0.4.10',
