@@ -90,6 +90,71 @@ class FakeSwift(object):
     objects = CONTAINER_CONTENTS
     containers = ['container']
 
+    class Connection(object):
+        def __init__(self, authurl=None, user=None, key=None, retries=5,
+                     preauthurl=None, preauthtoken=None, snet=False,
+                     starting_backoff=1, max_backoff=64, tenant_name=None,
+                     os_options=None, auth_version="1", cacert=None,
+                     insecure=False, cert=None, cert_key=None,
+                     ssl_compression=True, retry_on_ratelimit=False,
+                     timeout=None, session=None):
+            self.service_token = None
+
+        def _retry(self, reset_func, func, *args, **kwargs):
+            self.url, self.token = self.get_auth()
+            self.http_conn = None
+            return func(self.url, self.token, *args,
+                        service_token=self.service_token, **kwargs)
+
+        def get_auth(self):
+            return base_url(), TOKEN
+
+        def head_container(self, container, headers=None):
+            return self._retry(None, FakeSwift.head_container, container,
+                               headers=headers)
+
+        def put_container(self, container, headers=None, response_dict=None,
+                          query_string=None):
+            return self._retry(None, FakeSwift.put_container, container,
+                               headers=headers, response_dict=response_dict,
+                               query_string=query_string)
+
+        def head_object(self, container, obj, headers=None):
+            return self._retry(None, FakeSwift.head_object, container, obj,
+                               headers=headers)
+
+        def get_object(self, container, obj, resp_chunk_size=None,
+                       query_string=None, response_dict=None, headers=None):
+            return self._retry(None, FakeSwift.get_object, container, obj,
+                               resp_chunk_size=resp_chunk_size,
+                               query_string=query_string,
+                               response_dict=response_dict, headers=headers)
+
+        def get_container(self, container, marker=None, limit=None, prefix=None,
+                          delimiter=None, end_marker=None, path=None,
+                          full_listing=False, headers=None, query_string=None):
+            return self._retry(None, FakeSwift.get_container, container,
+                               marker=marker, limit=limit, prefix=prefix,
+                               delimiter=delimiter, end_marker=end_marker,
+                               path=path, full_listing=full_listing,
+                               headers=headers, query_string=query_string)
+
+        def delete_object(self, container, obj, query_string=None,
+                          response_dict=None, headers=None):
+            return self._retry(None, FakeSwift.delete_object, container, obj,
+                               query_string=query_string,
+                               response_dict=response_dict, headers=headers)
+
+        def put_object(self, container, obj, contents, content_length=None,
+                       etag=None, chunk_size=None, content_type=None,
+                       headers=None, query_string=None, response_dict=None):
+            return self._retry(None, FakeSwift.put_object, container, obj,
+                               contents, content_length=content_length,
+                               etag=etag, chunk_size=chunk_size,
+                               content_type=content_type, headers=headers,
+                               query_string=query_string,
+                               response_dict=response_dict)
+
     @classmethod
     def get_auth(cls, auth_url, user, passwd, **kwargs):
         return base_url(), TOKEN
@@ -138,7 +203,7 @@ class FakeSwift(object):
     @classmethod
     def put_object(cls, url, token, container, name=None, contents=None,
                    http_conn=None, content_type=None, content_length=None,
-                   headers=None):
+                   headers=None, **kwargs):
         if not name:
             raise ValueError("Attempting to add an object with no name/path")
         FakeSwift.objects.append(create_object(name))
