@@ -34,13 +34,13 @@ local\_settings.py:
 
 .. code:: python
 
-    DEFAULT_FILE_STORAGE='swift.storage.SwiftStorage'
+    DEFAULT_FILE_STORAGE = 'swift.storage.SwiftStorage'
 
 To store your static files on swift, add the following line:
 
 .. code:: python
 
-    STATICFILES_STORAGE ='swift.storage.StaticSwiftStorage'
+    STATICFILES_STORAGE = 'swift.storage.StaticSwiftStorage'
 
 This will use another container.
 
