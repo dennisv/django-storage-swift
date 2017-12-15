@@ -3,7 +3,7 @@ import os
 import re
 from datetime import datetime
 from functools import wraps
-from io import BytesIO
+from io import BytesIO, UnsupportedOperation
 from time import time
 import magic
 from django.conf import settings
@@ -256,6 +256,15 @@ class SwiftStorage(Storage):
     def _save(self, name, content, headers=None):
         original_name = name
         name = self.name_prefix + name
+
+        # Django rewinds file position to the beginning before saving,
+        # so should we.
+        # See django.core.files.storage.FileSystemStorage#_save
+        # and django.core.files.base.File#chunks
+        try:
+            content.seek(0)
+        except (AttributeError, UnsupportedOperation):  # pragma: no cover
+            pass
 
         if self.content_type_from_fd:
             content_type = magic.from_buffer(content.read(1024), mime=True)

@@ -273,6 +273,20 @@ class BackendTest(SwiftStorageTestCase):
         backend = self.default_storage('v3', content_type_from_fd=True)
         backend.save("test.txt", ContentFile("Some random data"))
 
+    def test_save_non_rewound(self):
+        """Save file with position not at the beginning"""
+        content = dict(orig=b"Hello world!")
+        content_file = ContentFile(content['orig'])
+        content_file.seek(5)
+
+        def mocked_put_object(cls, url, token, container, name=None,
+                              contents=None, *args, **kwargs):
+            content['saved'] = contents.read()
+
+        with patch('tests.utils.FakeSwift.put_object', new=classmethod(mocked_put_object)):
+            self.backend.save('test.txt', content_file)
+        self.assertEqual(content['saved'], content['orig'])
+
     def test_open(self):
         """Attempt to open a object"""
         file = self.backend._open('root.txt')
