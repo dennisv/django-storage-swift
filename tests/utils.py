@@ -91,6 +91,7 @@ class FakeSwift(object):
     containers = ['container']
 
     class Connection(object):
+        service_token = None
         def __init__(self, authurl=None, user=None, key=None, retries=5,
                      preauthurl=None, preauthtoken=None, snet=False,
                      starting_backoff=1, max_backoff=64, tenant_name=None,
@@ -98,7 +99,7 @@ class FakeSwift(object):
                      insecure=False, cert=None, cert_key=None,
                      ssl_compression=True, retry_on_ratelimit=False,
                      timeout=None, session=None):
-            self.service_token = None
+            pass
 
         def _retry(self, reset_func, func, *args, **kwargs):
             self.url, self.token = self.get_auth()
