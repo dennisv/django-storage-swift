@@ -8,6 +8,8 @@ matrix:
      python: 2.7
    - env: TOXENV=isort
      python: 2.7
+   - env: TOXENV=readme
+     python: 2.7
    - env: TOXENV=py27-1.9
      python: 2.7
    - env: TOXENV=py27-1.10
