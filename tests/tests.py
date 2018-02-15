@@ -159,6 +159,14 @@ class ConfigTest(SwiftStorageTestCase):
         with self.assertRaises(ImproperlyConfigured):
             self.default_storage('v3', os_extra_options="boom!")
 
+    @patch.object(FakeSwift.Connection, '__init__', return_value=None)
+    def test_override_lazy_connect(self, mock_swift_init):
+        """Test setting lazy_connect delays connection creation"""
+        backend = self.default_storage('v3', lazy_connect=True)
+        assert not mock_swift_init.called
+        self.assertFalse(backend.exists('warez/some_random_movie.mp4'))
+        assert mock_swift_init.called
+
 
 # @patch('swift.storage.swiftclient', new=FakeSwift)
 # class TokenTest(SwiftStorageTestCase):

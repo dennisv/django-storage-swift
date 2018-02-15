@@ -140,9 +140,12 @@ class SwiftStorage(Storage):
     auth_token_duration = setting('SWIFT_AUTH_TOKEN_DURATION', 60 * 60 * 23)
     os_extra_options = setting('SWIFT_EXTRA_OPTIONS', {})
     auto_overwrite = setting('SWIFT_AUTO_OVERWRITE', False)
+    lazy_connect = setting('SWIFT_LAZY_CONNECT', False)
     content_type_from_fd = setting('SWIFT_CONTENT_TYPE_FROM_FD', False)
     _token_creation_time = 0
     _token = ''
+    _swift_conn = None
+    _base_url = None
     name_prefix = setting('SWIFT_NAME_PREFIX', '')
     full_listing = setting('SWIFT_FULL_LISTING', True)
     max_retries = setting('SWIFT_MAX_RETRIES', 5)
@@ -170,17 +173,28 @@ class SwiftStorage(Storage):
         }
         self.os_options.update(self.os_extra_options)
 
-        # Get Connection wrapper
-        self.swift_conn = swiftclient.Connection(
-            authurl=self.api_auth_url,
-            user=self.api_username,
-            key=self.api_key,
-            retries=self.max_retries,
-            tenant_name=self.tenant_name,
-            os_options=self.os_options,
-            auth_version=self.auth_version)
+        if not self.lazy_connect:
+            self.swift_conn
 
-        # Check container
+    @property
+    def swift_conn(self):
+        """Get swift connection wrapper"""
+        if not self._swift_conn:
+            self._swift_conn = swiftclient.Connection(
+                authurl=self.api_auth_url,
+                user=self.api_username,
+                key=self.api_key,
+                retries=self.max_retries,
+                tenant_name=self.tenant_name,
+                os_options=self.os_options,
+                auth_version=self.auth_version)
+            self._check_container()
+        return self._swift_conn
+
+    def _check_container(self):
+        """
+        Check that container exists; raises exception if not.
+        """
         try:
             self.swift_conn.head_container(self.container_name)
         except swiftclient.ClientException:
@@ -197,26 +211,30 @@ class SwiftStorage(Storage):
                 raise ImproperlyConfigured(
                     "Container %s does not exist." % self.container_name)
 
-        if self.auto_base_url:
-            # Derive a base URL based on the authentication information from
-            # the server, optionally overriding the protocol, host/port and
-            # potentially adding a path fragment before the auth information.
-            self.base_url = self.swift_conn.url + '/'
-            if self.override_base_url is not None:
-                # override the protocol and host, append any path fragments
-                split_derived = urlparse.urlsplit(self.base_url)
-                split_override = urlparse.urlsplit(self.override_base_url)
-                split_result = [''] * 5
-                split_result[0:2] = split_override[0:2]
-                split_result[2] = (split_override[2] + split_derived[2]
-                                   ).replace('//', '/')
-                self.base_url = urlparse.urlunsplit(split_result)
+    @property
+    def base_url(self):
+        if self._base_url is None:
+            if self.auto_base_url:
+                # Derive a base URL based on the authentication information from
+                # the server, optionally overriding the protocol, host/port and
+                # potentially adding a path fragment before the auth information.
+                self._base_url = self.swift_conn.url + '/'
+                if self.override_base_url is not None:
+                    # override the protocol and host, append any path fragments
+                    split_derived = urlparse.urlsplit(self._base_url)
+                    split_override = urlparse.urlsplit(self.override_base_url)
+                    split_result = [''] * 5
+                    split_result[0:2] = split_override[0:2]
+                    split_result[2] = (split_override[2] + split_derived[2]
+                                       ).replace('//', '/')
+                    self._base_url = urlparse.urlunsplit(split_result)
 
-            self.base_url = urlparse.urljoin(self.base_url,
-                                             self.container_name)
-            self.base_url += '/'
-        else:
-            self.base_url = self.override_base_url
+                self._base_url = urlparse.urljoin(self._base_url,
+                                                  self.container_name)
+                self._base_url += '/'
+            else:
+                self._base_url = self.override_base_url
+        return self._base_url
 
     def _open(self, name, mode='rb'):
         original_name = name
