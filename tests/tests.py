@@ -303,7 +303,6 @@ class BackendTest(SwiftStorageTestCase):
         content = dict(orig="Hello world!")
         content_file = ContentFile("")
         content_file.write(content['orig'])
-        self.assertEqual(content_file.size, 0)
 
         def mocked_put_object(cls, url, token, container, name=None,
                               contents=None, content_length=None, *args, **kwargs):
