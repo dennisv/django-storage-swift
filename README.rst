@@ -186,6 +186,11 @@ Troubleshooting
    discussion <http://support.rc.nectar.org.au/forum/viewtopic.php?f=6&t=272>`__.
    If you are using temporary URLs, verify that your key is set
    correctly.
+-  **I'm getting empty or truncated file uploads**: Issues with some content
+   types may cause an incorrect `content_length` header to be sent with file
+   uploads, resulting in 0 byte or truncated files.  To avoid this, set
+   `SWIFT_CONTENT_LENGTH_FROM_FD: True`.
+
 
 Quickstart
 ----------

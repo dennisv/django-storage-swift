@@ -142,6 +142,7 @@ class SwiftStorage(Storage):
     auto_overwrite = setting('SWIFT_AUTO_OVERWRITE', False)
     lazy_connect = setting('SWIFT_LAZY_CONNECT', False)
     content_type_from_fd = setting('SWIFT_CONTENT_TYPE_FROM_FD', False)
+    content_length_from_fd = setting('SWIFT_CONTENT_LENGTH_FROM_FD', True)
     _token_creation_time = 0
     _token = ''
     _swift_conn = None
@@ -265,7 +266,12 @@ class SwiftStorage(Storage):
             content.seek(0)
         else:
             content_type = mimetypes.guess_type(name)[0]
-        content_length = content.size
+
+        if self.content_length_from_fd:
+            content_length = content.size
+        else:
+            content_length = None
+
         self.swift_conn.put_object(self.container_name,
                                    name,
                                    content,
