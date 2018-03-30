@@ -3,7 +3,7 @@ import os
 import re
 from datetime import datetime
 from functools import wraps
-from gzip import GzipFile
+import gzip
 from io import BytesIO, UnsupportedOperation
 from time import time
 import magic
@@ -279,10 +279,10 @@ class SwiftStorage(Storage):
         if content_type in self.gzip_content_types or (
            content_type is None and self.gzip_unknown_content_type):
             gz_data = BytesIO()
-            gzf = GzipFile(filename=name,
-                           fileobj=gz_data,
-                           mode='wb',
-                           compresslevel=self.gzip_compression_level)
+            gzf = gzip.GzipFile(filename=name,
+                                fileobj=gz_data,
+                                mode='wb',
+                                compresslevel=self.gzip_compression_level)
             gzf.write(content.file.read())
             gzf.close()
             content = gz_data.getvalue()

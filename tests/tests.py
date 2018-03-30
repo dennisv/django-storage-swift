@@ -276,7 +276,8 @@ class BackendTest(SwiftStorageTestCase):
         self.assertEqual(files.count(name), 1)
 
     @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
-    def test_save_gzip(self):
+    @patch('gzip.GzipFile')
+    def test_save_gzip(self, gzip_mock):
         """Save an object"""
         backend = self.default_storage('v3')
         backend.gzip_content_types = ['text/plain']
@@ -284,6 +285,7 @@ class BackendTest(SwiftStorageTestCase):
         name = backend.save('testgz.txt', content_file)
         dirs, files = self.backend.listdir('')
         self.assertEqual(files.count(name), 1)
+        self.assertTrue(gzip_mock.called)
 
     @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
     def test_content_type_from_fd(self):
