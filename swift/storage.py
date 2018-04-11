@@ -1,9 +1,9 @@
+import gzip
 import mimetypes
 import os
 import re
 from datetime import datetime
 from functools import wraps
-import gzip
 from io import BytesIO, UnsupportedOperation
 from time import time
 import magic
