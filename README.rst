@@ -111,7 +111,12 @@ django-storage-swift recognises the following options.
 | ``SWIFT_LAZY_CONNECT``                       | ``False``      | If ``True`` swift connection will be obtained on first use, if ``False`` it will be obtained during storage instantiation. This can decrease       |
 |                                              |                | startup time if you use many fields that use non-default swift storage.                                                                            |
 +----------------------------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------------------------------+
-
+| ``SWIFT_GZIP_CONTENT_TYPES``                 | ``[]``         | List of content type that will be compressed eg. ['text/plain', 'application/json']                                                                |
++----------------------------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``SWIFT_GZIP_COMPRESSION_LEVEL``             | ``4``          | Gzip compression level from 0 to 9. 0 = no compression, 9 = max compression                                                                        |
++----------------------------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``SWIFT_GZIP_UNKNOWN_CONTENT_TYPE``          | ``False``      | If set to True and the content-type can't be guessed, gzip anyway                                                                                  |
++----------------------------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
 SWIFT\_BASE\_URL

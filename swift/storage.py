@@ -1,3 +1,4 @@
+import gzip
 import mimetypes
 import os
 import re
@@ -143,6 +144,9 @@ class SwiftStorage(Storage):
     lazy_connect = setting('SWIFT_LAZY_CONNECT', False)
     content_type_from_fd = setting('SWIFT_CONTENT_TYPE_FROM_FD', False)
     content_length_from_fd = setting('SWIFT_CONTENT_LENGTH_FROM_FD', True)
+    gzip_content_types = setting('SWIFT_GZIP_CONTENT_TYPES', [])
+    gzip_unknown_content_type = setting('SWIFT_GZIP_UNKNOWN_CONTENT_TYPE', False)
+    gzip_compression_level = setting('SWIFT_GZIP_COMPRESSION_LEVEL', 4)
     _token_creation_time = 0
     _token = ''
     _swift_conn = None
@@ -271,6 +275,22 @@ class SwiftStorage(Storage):
             content_length = content.size
         else:
             content_length = None
+
+        if content_type in self.gzip_content_types or (
+           content_type is None and self.gzip_unknown_content_type):
+            gz_data = BytesIO()
+            gzf = gzip.GzipFile(filename=name,
+                                fileobj=gz_data,
+                                mode='wb',
+                                compresslevel=self.gzip_compression_level)
+            gzf.write(content.file.read())
+            gzf.close()
+            content = gz_data.getvalue()
+            content_length = None
+
+            if not headers:
+                headers = {}
+            headers['Content-Encoding'] = 'gzip'
 
         self.swift_conn.put_object(self.container_name,
                                    name,
