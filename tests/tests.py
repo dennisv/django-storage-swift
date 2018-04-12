@@ -276,6 +276,18 @@ class BackendTest(SwiftStorageTestCase):
         self.assertEqual(files.count(name), 1)
 
     @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
+    @patch('gzip.GzipFile')
+    def test_save_gzip(self, gzip_mock):
+        """Save an object"""
+        backend = self.default_storage('v3')
+        backend.gzip_content_types = ['text/plain']
+        content_file = ContentFile(b'Hello world!')
+        name = backend.save('testgz.txt', content_file)
+        dirs, files = self.backend.listdir('')
+        self.assertEqual(files.count(name), 1)
+        self.assertTrue(gzip_mock.called)
+
+    @patch('tests.utils.FakeSwift.objects', new=deepcopy(CONTAINER_CONTENTS))
     def test_content_type_from_fd(self):
         """Test content_type detection on save"""
         backend = self.default_storage('v3', content_type_from_fd=True)
@@ -364,7 +376,7 @@ class BackendTest(SwiftStorageTestCase):
 
     def test_get_valid_name(self):
         name = self.backend.get_valid_name("A @#!file.txt")
-        self.assertEquals(name, "A_file.txt")
+        self.assertEqual(name, "A_file.txt")
 
     def test_path(self):
         """path is not implemented"""
