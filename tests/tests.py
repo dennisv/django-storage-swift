@@ -234,7 +234,13 @@ class BackendTest(SwiftStorageTestCase):
         exists = self.backend.exists('warez/some_random_movie.mp4')
         self.assertFalse(exists)
 
-    def test_get_headers_chache(self):
+    def test_get_headers_chache1(self):
+        self.backend.cache_headers = True;
+        headers = self.backend.get_headers('images/test.png')
+        self.assertEqual('fcfc6539ce4e545ce58bafeeac3303a7', headers['hash'])
+
+    def test_get_headers_chache2(self):
+        self.backend.cache_headers = False;
         headers = self.backend.get_headers('images/test.png')
         self.assertEqual('fcfc6539ce4e545ce58bafeeac3303a7', headers['hash'])
 
