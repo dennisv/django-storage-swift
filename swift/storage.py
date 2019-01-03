@@ -154,7 +154,7 @@ class SwiftStorage(Storage):
     name_prefix = setting('SWIFT_NAME_PREFIX', '')
     full_listing = setting('SWIFT_FULL_LISTING', True)
     max_retries = setting('SWIFT_MAX_RETRIES', 5)
-    cache_headers = setting('SWIFT_CACHE_HEADERS', True)
+    cache_headers = setting('SWIFT_CACHE_HEADERS', False)
 
     def __init__(self, **settings):
         # check if some of the settings provided as class attributes
