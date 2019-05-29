@@ -428,7 +428,10 @@ class SwiftStorage(Storage):
 class StaticSwiftStorage(SwiftStorage):
     container_name = setting('SWIFT_STATIC_CONTAINER_NAME', '')
     name_prefix = setting('SWIFT_STATIC_NAME_PREFIX', '')
+    auto_base_url = setting('SWIFT_STATIC_AUTO_BASE_URL', True)
     override_base_url = setting('SWIFT_STATIC_BASE_URL')
+    auto_create_container_public = True
+    use_temp_urls = False
 
     def get_available_name(self, name, max_length=None):
         """
