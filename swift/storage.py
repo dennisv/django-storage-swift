@@ -154,6 +154,7 @@ class SwiftStorage(Storage):
     name_prefix = setting('SWIFT_NAME_PREFIX', '')
     full_listing = setting('SWIFT_FULL_LISTING', True)
     max_retries = setting('SWIFT_MAX_RETRIES', 5)
+    cache_headers = setting('SWIFT_CACHE_HEADERS', False)
 
     def __init__(self, **settings):
         # check if some of the settings provided as class attributes
@@ -301,18 +302,22 @@ class SwiftStorage(Storage):
         return original_name
 
     def get_headers(self, name):
-        """
-        Optimization : only fetch headers once when several calls are made
-        requiring information for the same name.
-        When the caller is collectstatic, this makes a huge difference.
-        According to my test, we get a *2 speed up. Which makes sense : two
-        api calls were made..
-        """
-        if name != self.last_headers_name:
-            # miss -> update
-            self.last_headers_value = self.swift_conn.head_object(
-                self.container_name, name)
+        if self.cache_headers:
+            """
+            Optimization : only fetch headers once when several calls are made
+            requiring information for the same name.
+            When the caller is collectstatic, this makes a huge difference.
+            According to my test, we get a *2 speed up. Which makes sense : two
+            api calls were made..
+            """
+            if name != self.last_headers_name:
+                # miss -> update
+                self.last_headers_value = self.swift_conn.head_object(self.container_name, name)
+                self.last_headers_name = name
+        else:
+            self.last_headers_value = self.swift_conn.head_object(self.container_name, name)
             self.last_headers_name = name
+
         return self.last_headers_value
 
     @prepend_name_prefix
