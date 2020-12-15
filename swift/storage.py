@@ -3,6 +3,7 @@ import mimetypes
 import os
 import re
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 from functools import wraps
 from io import BytesIO, UnsupportedOperation
 from time import time
@@ -12,6 +13,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
 from django.core.files.storage import Storage
 from six.moves.urllib import parse as urlparse
+import pytz
 
 try:
     from django.utils.deconstruct import deconstructible
@@ -28,7 +30,6 @@ except ImportError:
 
 def setting(name, default=None):
     return getattr(settings, name, default)
-
 
 def validate_settings(backend):
     # Check mandatory parameters
@@ -155,6 +156,8 @@ class SwiftStorage(Storage):
     full_listing = setting('SWIFT_FULL_LISTING', True)
     max_retries = setting('SWIFT_MAX_RETRIES', 5)
     cache_headers = setting('SWIFT_CACHE_HEADERS', False)
+    file_cache_enabled = setting('SWIFT_FILE_CACHE', False)
+    file_cache = None
 
     def __init__(self, **settings):
         # check if some of the settings provided as class attributes
@@ -242,6 +245,30 @@ class SwiftStorage(Storage):
                 self._base_url = self.override_base_url
         return self._base_url
 
+    def build_file_cache(self):
+        if(self.file_cache_enabled and self.file_cache == None):
+            # Build cache if never built
+            data = self.swift_conn.get_container(
+                self.container_name,
+                prefix=self.name_prefix,
+                full_listing=self.full_listing
+            )
+
+            self.file_cache = {}
+            for el in data[1]:
+                ctime_str = el['last_modified']
+                name = el['name']
+                ctime_dt = datetime.strptime(ctime_str, "%Y-%m-%dT%H:%M:%S.%f").replace(tzinfo=pytz.utc)
+                hash = el['hash']
+
+                if settings.USE_TZ:
+                    last_modified = ctime_dt
+                else:
+                    raise ImproperlyConfigured("settings.USE_TZ cannot be False when using swiftclient")
+
+                self.file_cache[name] = {'last_modified': last_modified, 'hash': hash }
+
+
     def _open(self, name, mode='rb'):
         original_name = name
         name = self.name_prefix + name
@@ -322,6 +349,14 @@ class SwiftStorage(Storage):
 
     @prepend_name_prefix
     def exists(self, name):
+        if(self.file_cache_enabled):
+            self.build_file_cache()
+            try:
+                self.file_cache[name]
+            except KeyError:
+                return False
+            return True
+
         try:
             self.get_headers(name)
         except swiftclient.ClientException:
