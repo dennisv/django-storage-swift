@@ -5,7 +5,7 @@ from copy import deepcopy
 from django.test import TestCase
 from django.core.exceptions import ImproperlyConfigured, SuspiciousFileOperation
 from django.core.files.base import ContentFile
-from hashlib import sha1
+from hashlib import sha256
 from mock import patch
 from .utils import FakeSwift, auth_params, base_url, CONTAINER_CONTENTS, TENANT_ID
 from swift import storage
@@ -418,7 +418,7 @@ class TemporaryUrlTest(SwiftStorageTestCase):
         url_parsed = urlparse.urlsplit(url)
         params = urlparse.parse_qs(url_parsed.query)
         msg = "{}\n{}\n{}".format("GET", params['temp_url_expires'][0], urlparse.unquote(url_parsed.path))
-        sig = hmac.new(backend.temp_url_key, msg.encode('utf-8'), sha1).hexdigest()
+        sig = hmac.new(backend.temp_url_key, msg.encode('utf-8'), sha256).hexdigest()
         self.assertEqual(params['temp_url_sig'][0], sig)
 
     def test_signature(self):
