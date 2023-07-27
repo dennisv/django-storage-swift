@@ -6,6 +6,7 @@ from datetime import datetime
 from functools import wraps
 from io import BytesIO, UnsupportedOperation
 from time import time
+
 import magic
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
