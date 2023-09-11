@@ -1,6 +1,7 @@
 import gzip
 import mimetypes
 import os
+import posixpath
 import re
 from datetime import datetime
 from functools import wraps
@@ -9,6 +10,7 @@ from time import time
 
 import magic
 from django.conf import settings
+from django.contrib.staticfiles.storage import CachedFilesMixin, ManifestFilesMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
 from django.core.files.storage import Storage
@@ -29,6 +31,17 @@ except ImportError:
 
 def setting(name, default=None):
     return getattr(settings, name, default)
+
+
+def safe_normpath(path):
+    """
+    Avoid doing normpath on empty path since:
+    - posixpath.normpath('') -> '.'
+    - we should avoid relative paths with swift
+    """
+    if path:
+        return posixpath.normpath(path)
+    return path
 
 
 def validate_settings(backend):
@@ -110,7 +123,7 @@ def prepend_name_prefix(func):
     """
     @wraps(func)
     def prepend_prefix(self, name, *args, **kwargs):
-        name = self.name_prefix + name
+        name = self.name_prefix + safe_normpath(name)
         return func(self, name, *args, **kwargs)
     return prepend_prefix
 
@@ -245,7 +258,7 @@ class SwiftStorage(Storage):
 
     def _open(self, name, mode='rb'):
         original_name = name
-        name = self.name_prefix + name
+        name = self.name_prefix + safe_normpath(name)
 
         headers, content = self.swift_conn.get_object(self.container_name, name)
         buf = BytesIO(content)
@@ -255,7 +268,7 @@ class SwiftStorage(Storage):
 
     def _save(self, name, content, headers=None):
         original_name = name
-        name = self.name_prefix + name
+        name = self.name_prefix + safe_normpath(name)
 
         # Django rewinds file position to the beginning before saving,
         # so should we.
@@ -446,3 +459,23 @@ class StaticSwiftStorage(SwiftStorage):
         overwrite it.
         """
         return name
+
+
+class CachedStaticSwiftStorage(CachedFilesMixin, StaticSwiftStorage):
+    """
+    A static file system storage backend which also saves
+    hashed copies of the files it saves.
+    """
+    pass
+
+
+class ManifestStaticSwiftStorage(ManifestFilesMixin, StaticSwiftStorage):
+    """
+    A static file system storage backend which also saves
+    hashed copies of the files it saves.
+    """
+    def read_manifest(self):
+        try:
+            super(ManifestStaticSwiftStorage, self).read_manifest()
+        except swiftclient.ClientException:
+            return None
