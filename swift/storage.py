@@ -8,11 +8,12 @@ from io import BytesIO, UnsupportedOperation
 from time import time
 
 import magic
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
 from django.core.files.storage import Storage
 from six.moves.urllib import parse as urlparse
+
+from swift.utils import setting
 
 try:
     from django.utils.deconstruct import deconstructible
@@ -25,10 +26,6 @@ try:
     from swiftclient.utils import generate_temp_url
 except ImportError:
     raise ImproperlyConfigured("Could not load swiftclient library")
-
-
-def setting(name, default=None):
-    return getattr(settings, name, default)
 
 
 def validate_settings(backend):
